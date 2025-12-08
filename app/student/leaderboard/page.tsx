@@ -1,51 +1,59 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-
-
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Trophy } from "lucide-react"
-import { StudentSidebar } from "@/components/student-sidebar"
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Trophy } from "lucide-react";
+import { StudentSidebar } from "@/components/student-sidebar";
 
 interface LeaderboardEntry {
-  rank: number
-  student_name: string
-  total_xp: number
-  current_level: number
+  rank: number;
+  student_name: string;
+  total_xp: number;
+  current_level: number; // required
 }
 
 export default function LeaderboardPage() {
-  const [entries, setEntries] = useState<LeaderboardEntry[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const supabase = createClient()
+  const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
+
         const { data, error: fetchError } = await supabase
           .from("leaderboard")
           .select("rank, student_name, total_xp, level")
           .order("rank", { ascending: true })
-          .limit(100)
+          .limit(100);
 
-        if (fetchError) throw new Error(fetchError.message)
-        setEntries(data || [])
+        if (fetchError) throw new Error(fetchError.message);
+
+        // FIX: convert level -> current_level
+        const formatted = (data || []).map((row: any) => ({
+          rank: row.rank,
+          student_name: row.student_name,
+          total_xp: row.total_xp,
+          current_level: row.level ?? 1, // ← FIX HERE
+        }));
+
+        setEntries(formatted);
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to load leaderboard"
-        setError(msg)
-        console.error("Error fetching leaderboard:", err)
+        const msg =
+          err instanceof Error ? err.message : "Failed to load leaderboard";
+        setError(msg);
+        console.error("Error fetching leaderboard:", err);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchLeaderboard()
-  }, [supabase])
+    fetchLeaderboard();
+  }, [supabase]);
 
   if (loading) {
     return (
@@ -55,12 +63,13 @@ export default function LeaderboardPage() {
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex h-screen bg-background">
       <StudentSidebar />
+
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto p-6">
           <div className="mb-8">
@@ -68,7 +77,9 @@ export default function LeaderboardPage() {
               <Trophy className="w-8 h-8" />
               Leaderboard
             </h1>
-            <p className="text-muted-foreground mt-2">Top performers in UPSC Prep</p>
+            <p className="text-muted-foreground mt-2">
+              Top performers in UPSC Prep
+            </p>
           </div>
 
           {error && (
@@ -82,7 +93,9 @@ export default function LeaderboardPage() {
           {entries.length === 0 ? (
             <Card>
               <CardContent className="p-6 text-center">
-                <p className="text-muted-foreground">No leaderboard data available yet.</p>
+                <p className="text-muted-foreground">
+                  No leaderboard data available yet.
+                </p>
               </CardContent>
             </Card>
           ) : (
@@ -90,6 +103,7 @@ export default function LeaderboardPage() {
               <CardHeader>
                 <CardTitle>Rankings</CardTitle>
               </CardHeader>
+
               <CardContent>
                 <div className="space-y-2">
                   {entries.map((entry) => (
@@ -103,16 +117,24 @@ export default function LeaderboardPage() {
                           {entry.rank === 2 && <span className="text-2xl">🥈</span>}
                           {entry.rank === 3 && <span className="text-2xl">🥉</span>}
                           {entry.rank > 3 && (
-                            <span className="text-lg font-bold text-muted-foreground">#{entry.rank}</span>
+                            <span className="text-lg font-bold text-muted-foreground">
+                              #{entry.rank}
+                            </span>
                           )}
                         </div>
+
                         <div>
                           <p className="font-medium">{entry.student_name}</p>
-                          <p className="text-xs text-muted-foreground">Level {entry.current_level}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Level {entry.current_level}
+                          </p>
                         </div>
                       </div>
+
                       <div className="text-right">
-                        <p className="font-bold text-lg">{(entry.total_xp ?? 0).toLocaleString()}</p>
+                        <p className="font-bold text-lg">
+                          {(entry.total_xp ?? 0).toLocaleString()}
+                        </p>
                         <p className="text-xs text-muted-foreground">XP</p>
                       </div>
                     </div>
@@ -124,5 +146,5 @@ export default function LeaderboardPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

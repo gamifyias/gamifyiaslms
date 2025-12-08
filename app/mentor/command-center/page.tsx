@@ -1,86 +1,117 @@
 "use client";
 export const dynamic = "force-dynamic";
 
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { MentorSidebar } from "@/components/mentor-sidebar";
 
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/use-toast";
+import Link from "next/link";
 
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { MentorSidebar } from "@/components/mentor-sidebar"
+import { User, Loader2 } from "lucide-react";
 
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import Link from "next/link"
+interface LevelRecord {
+  student_id: string;
+  total_xp?: number;
+  current_level?: number;
+}
 
-import { User, Loader2, Target, Zap, Award, Clock } from "lucide-react"
+interface StudentProfileRecord {
+  id: string;
+  total_hours_studied?: number;
+  current_streak?: number;
+  overall_accuracy?: number;
+  last_study_date?: string | null;
+}
 
 export default function MentorCommandCenter() {
-  const supabase = createClient()
-  const { toast } = useToast()
+  const supabase = createClient();
+  const { toast } = useToast();
 
-  const [loading, setLoading] = useState(true)
-  const [students, setStudents] = useState<any[]>([])
-  const [mentorId, setMentorId] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState<any[]>([]);
+  const [mentorId, setMentorId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
 
         // Get logged-in mentor
         const {
           data: { user },
-        } = await supabase.auth.getUser()
+        } = await supabase.auth.getUser();
 
         if (!user) {
           toast({
             title: "Error",
             description: "Mentor not logged in",
             variant: "destructive",
-          })
-          return
+          });
+          return;
         }
 
-        setMentorId(user.id)
+        setMentorId(user.id);
 
         // Fetch assigned students
         const { data: assigned, error: aErr } = await supabase
           .from("student_mentor_assignments")
           .select("student_id")
           .eq("mentor_id", user.id)
-          .eq("is_active", true)
+          .eq("is_active", true);
 
-        if (aErr) throw aErr
+        if (aErr) throw aErr;
 
         if (!assigned || assigned.length === 0) {
-          setStudents([])
-          return
+          setStudents([]);
+          return;
         }
 
-        const studentIds = assigned.map((x) => x.student_id)
+        const studentIds = assigned.map((x) => x.student_id);
 
-        // 1. Profiles (name, email, phone)
-        const { data: profiles } = await supabase
+        // 1. Profiles
+        const { data: profilesRaw } = await supabase
           .from("profiles")
           .select("*")
-          .in("id", studentIds)
+          .in("id", studentIds);
 
-        // 2. Level System (total_xp + current_level)
-        const { data: levelData } = await supabase
+        const profiles = profilesRaw ?? [];
+
+        // 2. Level System
+        const { data: levelRaw } = await supabase
           .from("level_system")
           .select("student_id, total_xp, current_level")
-          .in("student_id", studentIds)
+          .in("student_id", studentIds);
 
-        // 3. Student Profiles (accuracy, hours, streak)
-        const { data: studentProfiles } = await supabase
+        const levelData: LevelRecord[] = levelRaw ?? [];
+
+        // 3. Student Profiles
+        const { data: spRaw } = await supabase
           .from("student_profiles")
-          .select("id, total_hours_studied, current_streak, overall_accuracy, last_study_date")
-          .in("id", studentIds)
+          .select(
+            "id, total_hours_studied, current_streak, overall_accuracy, last_study_date"
+          )
+          .in("id", studentIds);
 
-        const combined = profiles.map((p) => {
-          const lvl = levelData.find((l) => l.student_id === p.id) || {}
-          const sp = studentProfiles.find((s) => s.id === p.id) || {}
+        const studentProfiles: StudentProfileRecord[] = spRaw ?? [];
+
+        // SAFE MAPPING
+        const combined = profiles.map((p: any) => {
+          const lvl =
+            (levelData.find((l) => l.student_id === p.id) ||
+              {}) as LevelRecord;
+          const sp =
+            (studentProfiles.find((s) => s.id === p.id) ||
+              {}) as StudentProfileRecord;
 
           return {
             ...p,
@@ -92,33 +123,35 @@ export default function MentorCommandCenter() {
               total_hours_studied: sp.total_hours_studied ?? 0,
               last_study_date: sp.last_study_date ?? null,
             },
-          }
-        })
+          };
+        });
 
-        setStudents(combined)
+        setStudents(combined);
       } catch (err: any) {
-        console.error(err)
+        console.error(err);
         toast({
           title: "Error loading students",
           description: err.message,
           variant: "destructive",
-        })
+        });
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    load()
-  }, [])
+    load();
+  }, []);
 
   const getHealthStatus = (stats: any) => {
-    const accuracy = Number(stats.overall_accuracy || 0)
-    const streak = Number(stats.current_streak || 0)
+    const accuracy = Number(stats.overall_accuracy || 0);
+    const streak = Number(stats.current_streak || 0);
 
-    if (accuracy >= 70 || streak >= 5) return { text: "Good", color: "bg-green-500" }
-    if (accuracy >= 40) return { text: "Average", color: "bg-yellow-500" }
-    return { text: "Needs Support", color: "bg-red-500" }
-  }
+    if (accuracy >= 70 || streak >= 5)
+      return { text: "Good", color: "bg-green-500" };
+    if (accuracy >= 40)
+      return { text: "Average", color: "bg-yellow-500" };
+    return { text: "Needs Support", color: "bg-red-500" };
+  };
 
   if (loading) {
     return (
@@ -128,7 +161,7 @@ export default function MentorCommandCenter() {
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -152,11 +185,14 @@ export default function MentorCommandCenter() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
               {students.map((student) => {
-                const stats = student.stats
-                const health = getHealthStatus(stats)
+                const stats = student.stats;
+                const health = getHealthStatus(stats);
 
                 return (
-                  <Card key={student.id} className="hover:shadow-lg transition-shadow">
+                  <Card
+                    key={student.id}
+                    className="hover:shadow-lg transition-shadow"
+                  >
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
@@ -164,9 +200,12 @@ export default function MentorCommandCenter() {
                             <User className="w-5 h-5" />
                           </div>
                           <div>
-                            <CardTitle className="text-lg">{student.full_name}</CardTitle>
+                            <CardTitle className="text-lg">
+                              {student.full_name}
+                            </CardTitle>
                             <CardDescription className="text-xs">
-                              {student.email} {student.phone && `• ${student.phone}`}
+                              {student.email}{" "}
+                              {student.phone && `• ${student.phone}`}
                             </CardDescription>
                           </div>
                         </div>
@@ -192,7 +231,9 @@ export default function MentorCommandCenter() {
                         <span>Accuracy</span>
                         <strong>
                           {stats.overall_accuracy
-                            ? `${Number(stats.overall_accuracy).toFixed(1)}%`
+                            ? `${Number(
+                                stats.overall_accuracy
+                              ).toFixed(1)}%`
                             : "0.0%"}
                         </strong>
                       </div>
@@ -211,7 +252,9 @@ export default function MentorCommandCenter() {
                         <span>Last Active</span>
                         <strong>
                           {stats.last_study_date
-                            ? new Date(stats.last_study_date).toLocaleDateString()
+                            ? new Date(
+                                stats.last_study_date
+                              ).toLocaleDateString()
                             : "-"}
                         </strong>
                       </div>
@@ -225,12 +268,12 @@ export default function MentorCommandCenter() {
                       </Link>
                     </CardContent>
                   </Card>
-                )
+                );
               })}
             </div>
           )}
         </div>
       </div>
     </div>
-  )
+  );
 }
