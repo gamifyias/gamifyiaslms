@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Users, BarChart3, Award, Clock } from "lucide-react"
 
 interface MentorStats {
@@ -26,37 +31,32 @@ export function MentorDashboard({ mentorId }: { mentorId: string }) {
     const fetchMentorStats = async () => {
       const supabase = createClient()
 
-      // ---------------------- 1️⃣ TOTAL STUDENTS COUNT -----------------------
-// TOTAL STUDENT COUNT (WORKS 100%)
-    const { count: totalStudentCount, error: totalErr } = await supabase
-      .from("profiles")
-      .select("id", { count: "exact" })
-      .eq("role", "student")
+      // 1️⃣ Total students
+      const { count: totalStudentCount } = await supabase
+        .from("profiles")
+        .select("id", { count: "exact" })
+        .eq("role", "student")
 
-    if (totalErr) console.error("Total student count error:", totalErr)
-
-
-      // ---------------------- 2️⃣ ASSIGNED STUDENTS COUNT -----------------------
+      // 2️⃣ Assigned students
       const { count: assignedCount } = await supabase
         .from("student_mentor_assignments")
         .select("student_id", { count: "exact" })
         .eq("mentor_id", mentorId)
         .eq("is_active", true)
 
-      // ---------------------- 3️⃣ MENTOR RATING -----------------------
+      // 3️⃣ Mentor rating
       const { data: mentorProfile } = await supabase
         .from("mentor_profiles")
         .select("rating")
         .eq("id", mentorId)
         .single()
 
-      // ---------------------- 4️⃣ CONTENT CREATED COUNT -----------------------
+      // 4️⃣ Content created
       const { count: contentCount } = await supabase
         .from("study_materials")
         .select("id", { count: "exact" })
         .eq("created_by", mentorId)
 
-      // SET FINAL STATS
       setStats({
         totalStudents: totalStudentCount || 0,
         assignedStudents: assignedCount || 0,
@@ -64,7 +64,7 @@ export function MentorDashboard({ mentorId }: { mentorId: string }) {
         averageRating: mentorProfile?.rating || 5,
       })
 
-      // ---------------------- 5️⃣ LAST 5 STUDY ACTIVITIES -----------------------
+      // 5️⃣ Recent activity
       const { data: sessions } = await supabase
         .from("study_sessions")
         .select("*")
@@ -82,52 +82,56 @@ export function MentorDashboard({ mentorId }: { mentorId: string }) {
       icon: Users,
       label: "Total Students",
       value: stats.totalStudents,
-      color: "text-primary",
     },
     {
       icon: Users,
       label: "Assigned Students",
       value: stats.assignedStudents,
-      color: "text-blue-500",
     },
     {
       icon: Award,
-      label: "Rating",
-      value: stats.averageRating.toFixed(1),
-      color: "text-accent",
-      suffix: "⭐",
+      label: "Average Rating",
+      value: `${stats.averageRating.toFixed(1)} ⭐`,
     },
     {
       icon: BarChart3,
       label: "Content Created",
       value: stats.totalContentCreated,
-      color: "text-green-500",
     },
   ]
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Welcome Back!</h2>
-        <p className="text-muted-foreground mt-2">Here's your mentoring dashboard overview</p>
+    <div className="p-8 space-y-10 bg-[#F6E7C1] text-[#3B2A23] min-h-screen">
+      {/* HEADER */}
+      <div className="space-y-2">
+        <h2 className="text-3xl font-bold">
+          Mentor Dashboard
+        </h2>
+        <p className="text-sm">
+          Overview of your mentoring activity
+        </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* STATS */}
       <div className="grid md:grid-cols-4 gap-4">
         {statCards.map((stat, idx) => {
           const Icon = stat.icon
           return (
-            <Card key={idx} className="border-0 shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
+            <Card
+              key={idx}
+              className="border-2 border-[#8B5A2B] bg-[#F2DEB3]"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  {stat.label}
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="flex items-center justify-between">
                   <span className="text-3xl font-bold">
                     {stat.value}
-                    {stat.suffix && <span className="ml-1">{stat.suffix}</span>}
                   </span>
-                  <Icon className={`w-8 h-8 ${stat.color} opacity-20`} />
+                  <Icon className="w-8 h-8 opacity-30" />
                 </div>
               </CardContent>
             </Card>
@@ -135,54 +139,69 @@ export function MentorDashboard({ mentorId }: { mentorId: string }) {
         })}
       </div>
 
-      {/* Quick Actions & Recent Activity */}
+      {/* ACTIONS & ACTIVITY */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-sm">
+        {/* QUICK ACTIONS */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Manage your mentoring activities</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <button className="w-full px-4 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 text-sm font-medium text-left">
-                Create New Content
+          <CardContent className="space-y-3">
+            <a href="/mentor/subjects">
+              <button className="w-full border-2 border-[#3B2A23] bg-[#EAD39C] px-4 py-2 text-left">
+                Create Study Content
               </button>
-              <button className="w-full px-4 py-2 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 text-sm font-medium text-left">
+            </a>
+            <a href="/mentor/command-center">
+              <button className="w-full border-2 border-[#3B2A23] bg-[#EAD39C] px-4 py-2 text-left">
                 View Student Progress
               </button>
-              <button className="w-full px-4 py-2 rounded-lg bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 text-sm font-medium text-left">
+            </a>
+            <a
+              href="https://contactgamifyias.web.app/contact-admin.html"
+              target="_blank"
+            >
+              <button className="w-full border-2 border-[#3B2A23] bg-[#EAD39C] px-4 py-2 text-left">
                 Send Feedback
               </button>
-              <button className="w-full px-4 py-2 rounded-lg bg-green-500/10 text-green-600 hover:bg-green-500/20 text-sm font-medium text-left">
+            </a>
+            <a href="/mentor/profile">
+              <button className="w-full border-2 border-[#3B2A23] bg-[#EAD39C] px-4 py-2 text-left">
                 Update Profile
               </button>
-            </div>
+            </a>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm">
+        {/* RECENT ACTIVITY */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
           <CardHeader>
             <CardTitle>Recent Student Activity</CardTitle>
-            <CardDescription>Latest study sessions</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {recentActivities.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No recent activities</p>
-              ) : (
-                recentActivities.map((activity, idx) => (
-                  <div key={idx} className="flex items-start gap-3 pb-2 border-b border-border last:border-0">
-                    <Clock className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">Study Session</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.duration_minutes} min • {activity.questions_answered} questions
-                      </p>
-                    </div>
+          <CardContent className="space-y-3">
+            {recentActivities.length === 0 ? (
+              <p className="text-sm">
+                No recent activity found.
+              </p>
+            ) : (
+              recentActivities.map((activity, idx) => (
+                <div
+                  key={idx}
+                  className="flex gap-3 border-b border-[#8B5A2B] pb-2 last:border-0"
+                >
+                  <Clock className="w-4 h-4 mt-1 opacity-70" />
+                  <div>
+                    <p className="text-sm font-medium">
+                      Study Session
+                    </p>
+                    <p className="text-xs">
+                      {activity.duration_minutes} min •{" "}
+                      {activity.questions_answered} questions
+                    </p>
                   </div>
-                ))
-              )}
-            </div>
+                </div>
+              ))
+            )}
           </CardContent>
         </Card>
       </div>

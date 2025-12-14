@@ -1,9 +1,9 @@
-"use client";
-export const dynamic = "force-dynamic";
+"use client"
+export const dynamic = "force-dynamic"
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { MentorSidebar } from "@/components/mentor-sidebar";
+import { useEffect, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
+import { MentorSidebar } from "@/components/mentor-sidebar"
 
 import {
   Card,
@@ -11,107 +11,99 @@ import {
   CardTitle,
   CardContent,
   CardDescription,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
-import Link from "next/link";
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
+import Link from "next/link"
 
-import { User, Loader2 } from "lucide-react";
+import { User, Loader2 } from "lucide-react"
 
 interface LevelRecord {
-  student_id: string;
-  total_xp?: number;
-  current_level?: number;
+  student_id: string
+  total_xp?: number
+  current_level?: number
 }
 
 interface StudentProfileRecord {
-  id: string;
-  total_hours_studied?: number;
-  current_streak?: number;
-  overall_accuracy?: number;
-  last_study_date?: string | null;
+  id: string
+  total_hours_studied?: number
+  current_streak?: number
+  overall_accuracy?: number
+  last_study_date?: string | null
 }
 
 export default function MentorCommandCenter() {
-  const supabase = createClient();
-  const { toast } = useToast();
+  const supabase = createClient()
+  const { toast } = useToast()
 
-  const [loading, setLoading] = useState(true);
-  const [students, setStudents] = useState<any[]>([]);
-  const [mentorId, setMentorId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true)
+  const [students, setStudents] = useState<any[]>([])
+  const [mentorId, setMentorId] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
       try {
-        setLoading(true);
+        setLoading(true)
 
-        // Get logged-in mentor
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await supabase.auth.getUser()
 
         if (!user) {
           toast({
             title: "Error",
             description: "Mentor not logged in",
             variant: "destructive",
-          });
-          return;
+          })
+          return
         }
 
-        setMentorId(user.id);
+        setMentorId(user.id)
 
-        // Fetch assigned students
         const { data: assigned, error: aErr } = await supabase
           .from("student_mentor_assignments")
           .select("student_id")
           .eq("mentor_id", user.id)
-          .eq("is_active", true);
+          .eq("is_active", true)
 
-        if (aErr) throw aErr;
+        if (aErr) throw aErr
 
         if (!assigned || assigned.length === 0) {
-          setStudents([]);
-          return;
+          setStudents([])
+          return
         }
 
-        const studentIds = assigned.map((x) => x.student_id);
+        const studentIds = assigned.map((x) => x.student_id)
 
-        // 1. Profiles
         const { data: profilesRaw } = await supabase
           .from("profiles")
           .select("*")
-          .in("id", studentIds);
+          .in("id", studentIds)
 
-        const profiles = profilesRaw ?? [];
+        const profiles = profilesRaw ?? []
 
-        // 2. Level System
         const { data: levelRaw } = await supabase
           .from("level_system")
           .select("student_id, total_xp, current_level")
-          .in("student_id", studentIds);
+          .in("student_id", studentIds)
 
-        const levelData: LevelRecord[] = levelRaw ?? [];
+        const levelData: LevelRecord[] = levelRaw ?? []
 
-        // 3. Student Profiles
         const { data: spRaw } = await supabase
           .from("student_profiles")
           .select(
             "id, total_hours_studied, current_streak, overall_accuracy, last_study_date"
           )
-          .in("id", studentIds);
+          .in("id", studentIds)
 
-        const studentProfiles: StudentProfileRecord[] = spRaw ?? [];
+        const studentProfiles: StudentProfileRecord[] = spRaw ?? []
 
-        // SAFE MAPPING
         const combined = profiles.map((p: any) => {
           const lvl =
-            (levelData.find((l) => l.student_id === p.id) ||
-              {}) as LevelRecord;
+            levelData.find((l) => l.student_id === p.id) || {}
           const sp =
-            (studentProfiles.find((s) => s.id === p.id) ||
-              {}) as StudentProfileRecord;
+            studentProfiles.find((s) => s.id === p.id) || {}
 
           return {
             ...p,
@@ -123,80 +115,86 @@ export default function MentorCommandCenter() {
               total_hours_studied: sp.total_hours_studied ?? 0,
               last_study_date: sp.last_study_date ?? null,
             },
-          };
-        });
+          }
+        })
 
-        setStudents(combined);
+        setStudents(combined)
       } catch (err: any) {
-        console.error(err);
+        console.error(err)
         toast({
           title: "Error loading students",
           description: err.message,
           variant: "destructive",
-        });
+        })
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    load();
-  }, []);
+    load()
+  }, [])
 
   const getHealthStatus = (stats: any) => {
-    const accuracy = Number(stats.overall_accuracy || 0);
-    const streak = Number(stats.current_streak || 0);
+    const accuracy = Number(stats.overall_accuracy || 0)
+    const streak = Number(stats.current_streak || 0)
 
     if (accuracy >= 70 || streak >= 5)
-      return { text: "Good", color: "bg-green-500" };
+      return { text: "Good", color: "bg-green-600" }
     if (accuracy >= 40)
-      return { text: "Average", color: "bg-yellow-500" };
-    return { text: "Needs Support", color: "bg-red-500" };
-  };
+      return { text: "Average", color: "bg-yellow-500" }
+    return { text: "Needs Support", color: "bg-red-600" }
+  }
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1]">
         <MentorSidebar />
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-[#3B2A23]" />
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <MentorSidebar />
+
       <div className="flex-1 overflow-auto">
         <div className="max-w-6xl mx-auto p-8 space-y-8">
+          {/* HEADER */}
           <div>
             <h1 className="text-3xl font-bold">Command Center</h1>
-            <p className="text-muted-foreground">
-              Your assigned students & their overall performance.
+            <p className="text-sm opacity-80">
+              Assigned students and their overall performance.
             </p>
           </div>
 
           {students.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
+            <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+              <CardContent className="p-6 text-center">
                 No students assigned yet.
               </CardContent>
             </Card>
           ) : (
-            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
+            <div className="grid md:grid-cols-2 gap-6">
               {students.map((student) => {
-                const stats = student.stats;
-                const health = getHealthStatus(stats);
+                const stats = student.stats
+                const health = getHealthStatus(stats)
 
                 return (
                   <Card
                     key={student.id}
-                    className="hover:shadow-lg transition-shadow"
+                    className="
+                      border-2 border-[#8B5A2B] bg-[#F2DEB3]
+                      transition-all duration-200
+                      hover:-translate-y-1 hover:shadow-md
+                    "
                   >
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                          <div className="w-10 h-10 rounded-full bg-[#EAD39C] border-2 border-[#3B2A23] flex items-center justify-center">
                             <User className="w-5 h-5" />
                           </div>
                           <div>
@@ -204,30 +202,30 @@ export default function MentorCommandCenter() {
                               {student.full_name}
                             </CardTitle>
                             <CardDescription className="text-xs">
-                              {student.email}{" "}
-                              {student.phone && `• ${student.phone}`}
+                              {student.email}
+                              {student.phone && ` • ${student.phone}`}
                             </CardDescription>
                           </div>
                         </div>
 
-                        <Badge className={`${health.color} text-white px-2`}>
+                        <Badge className={`${health.color} text-white`}>
                           {health.text}
                         </Badge>
                       </div>
                     </CardHeader>
 
-                    <CardContent className="space-y-3 text-sm">
-                      <div className="flex items-center justify-between">
+                    <CardContent className="space-y-2 text-sm">
+                      <div className="flex justify-between">
                         <span>Level</span>
                         <strong>{stats.current_level}</strong>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-between">
                         <span>Total XP</span>
                         <strong>{stats.total_points}</strong>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-between">
                         <span>Accuracy</span>
                         <strong>
                           {stats.overall_accuracy
@@ -238,17 +236,17 @@ export default function MentorCommandCenter() {
                         </strong>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-between">
                         <span>Streak</span>
                         <strong>{stats.current_streak} days</strong>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-between">
                         <span>Hours Studied</span>
                         <strong>{stats.total_hours_studied} hrs</strong>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex justify-between">
                         <span>Last Active</span>
                         <strong>
                           {stats.last_study_date
@@ -262,18 +260,26 @@ export default function MentorCommandCenter() {
                       <Link
                         href={`/mentor/command-center/student-progress?studentId=${student.id}`}
                       >
-                        <Button className="w-full mt-3">
+                        <Button
+                          className="
+                            w-full mt-3
+                            border-2 border-[#3B2A23]
+                            bg-[#EAD39C] text-[#3B2A23]
+                            hover:bg-[#F6E7C1]
+                            transition-all duration-200
+                          "
+                        >
                           View Full Progress
                         </Button>
                       </Link>
                     </CardContent>
                   </Card>
-                );
+                )
               })}
             </div>
           )}
         </div>
       </div>
     </div>
-  );
+  )
 }

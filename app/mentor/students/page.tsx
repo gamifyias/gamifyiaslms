@@ -1,4 +1,4 @@
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 import { createClient } from "@/lib/supabase/server"
 import { redirect } from "next/navigation"
@@ -15,16 +15,22 @@ export default async function StudentsPage() {
     redirect("/auth/login")
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single()
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
 
   if (profile?.role !== "mentor") {
     redirect("/dashboard")
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <MentorSidebar />
-      <div className="flex-1 overflow-auto">
+
+      <div className="flex-1 overflow-auto p-8 animate-in fade-in duration-300">
+        {/* STUDENT LIST CONTENT */}
         <StudentsList />
       </div>
     </div>

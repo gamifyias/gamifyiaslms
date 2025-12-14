@@ -27,7 +27,7 @@ export default function NoAccess() {
           Please check back later.
         </p>
         <p className="mt-2 text-center text-gray-600 dark:text-gray-400">
-          <a href="" className="text-blue-500 dark:text-blue-400">
+          <a href="https://contactgamifyias.web.app/contact-admin.html" className="text-blue-500 dark:text-blue-400">
             Contact Admin
           </a>
         </p>

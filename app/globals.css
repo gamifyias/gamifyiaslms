@@ -217,3 +217,49 @@
     animation: confetti-fall 2s ease-in forwards;
   }
 }
+/* -------------------------------
+   RPG / RETRO AMBIENCE (GLOBAL)
+-------------------------------- */
+
+/* parchment noise */
+.bg-parchment-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+}
+
+/* floating dust */
+@keyframes ambient-dust {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(-120vh) translateX(40px);
+    opacity: 0;
+  }
+}
+
+.animate-dust {
+  animation: ambient-dust linear infinite;
+}
+
+/* card depth on hover */
+.card-rpg {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card-rpg:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(139, 90, 43, 0.4),
+    0 10px 30px rgba(59, 42, 35, 0.18);
+}
+
+/* disable particles on mobile */
+@media (max-width: 768px) {
+  .animate-dust {
+    display: none;
+  }
+}

@@ -1,17 +1,21 @@
-"use client";
-
+"use client"
 
 import type React from "react"
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, Shield } from "lucide-react"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
@@ -33,89 +37,108 @@ export default function LoginPage() {
       })
       if (error) throw error
 
-      // This allows the user to select their role if it hasn't been set yet
       setTimeout(() => {
         router.push("/auth/welcome")
       }, 500)
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(error instanceof Error ? error.message : "The gate remains closed.")
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-background to-secondary">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col gap-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Gamify IAS Academy
-            </h1>
-            <p className="text-sm text-muted-foreground">Premium civil service exam preparation</p>
-          </div>
-
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-2xl">Welcome Back</CardTitle>
-              <CardDescription>Sign in to your account to continue</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="transition-all"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="transition-all"
-                  />
-                </div>
-
-                {error && (
-                  <div className="flex gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={isLoading} size="lg">
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
-
-                <div className="text-center text-sm">
-                  Don&apos;t have an account?{" "}
-                  <Link href="/auth/signup" className="font-semibold text-primary hover:underline">
-                    Sign up
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          <p className="text-xs text-center text-muted-foreground">
-            By signing in, you agree to our Terms of Service and Privacy Policy
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F6E7C1] text-[#3B2A23]">
+      <div className="w-full max-w-md space-y-6">
+        {/* HEADER */}
+        <div className="text-center space-y-2">
+          <p className="text-sm uppercase tracking-widest">
+            🛡️ Return to the Realm
+          </p>
+          <h1 className="text-3xl font-bold">
+            Gamify IAS
+            <span className="block text-[#8B5A2B]">Academy</span>
+          </h1>
+          <p className="text-sm">
+            Present your credentials to the Guild Gate.
           </p>
         </div>
+
+        {/* LOGIN CARD */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+          <CardHeader className="space-y-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Shield className="h-5 w-5" />
+              Guild Gate
+            </CardTitle>
+            <p className="text-sm">
+              Only registered warriors may enter.
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-sm">
+                  Guild Scroll (Email)
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="warrior@realm.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="border-2 border-[#8B5A2B] bg-[#F6E7C1]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-sm">
+                  Secret Rune (Password)
+                </Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="border-2 border-[#8B5A2B] bg-[#F6E7C1]"
+                />
+              </div>
+
+              {error && (
+                <div className="flex gap-2 border-2 border-[#B84A3A] bg-[#F6D2C9] p-3 text-sm">
+                  <AlertCircle className="h-4 w-4 mt-0.5" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full border-2 border-[#3B2A23] bg-[#C47A2C] text-[#3B2A23] hover:bg-[#B96C1E]"
+              >
+                {isLoading ? "Opening the Gate..." : "Enter the Realm"}
+              </Button>
+
+              <p className="text-center text-sm">
+                New to the realm?{" "}
+                <Link
+                  href="/auth/signup"
+                  className="font-semibold underline"
+                >
+                  Enlist as a Warrior
+                </Link>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* FOOTER */}
+        <p className="text-xs text-center">
+          By entering, you swear allegiance to the Guild Laws.
+        </p>
       </div>
     </div>
   )

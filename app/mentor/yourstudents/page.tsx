@@ -1,14 +1,25 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-
-
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { MentorSidebar } from "@/components/mentor-sidebar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 import { Users, MessageSquare } from "lucide-react"
 
 interface Student {
@@ -29,12 +40,12 @@ export default function AssignedStudentsPage() {
         setIsLoading(true)
         const supabase = createClient()
 
-        // 1. Get current mentor ID
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
         if (!user?.id) return
         const mentorId = user.id
 
-        // 2. Fetch assigned student IDs
         const { data: assignments, error: assignErr } = await supabase
           .from("student_mentor_assignments")
           .select("student_id")
@@ -43,7 +54,7 @@ export default function AssignedStudentsPage() {
 
         if (assignErr) throw assignErr
 
-        const studentIds = assignments.map(a => a.student_id)
+        const studentIds = assignments.map((a) => a.student_id)
 
         if (studentIds.length === 0) {
           setStudents([])
@@ -51,7 +62,6 @@ export default function AssignedStudentsPage() {
           return
         }
 
-        // 3. Fetch student data using IN query
         const { data, error } = await supabase
           .from("profiles")
           .select(`
@@ -63,7 +73,7 @@ export default function AssignedStudentsPage() {
               current_level
             )
           `)
-          .in("id", studentIds) // FETCH ONLY ASSIGNED STUDENTS
+          .in("id", studentIds)
           .order("full_name", { ascending: true })
 
         if (error) throw error
@@ -88,55 +98,63 @@ export default function AssignedStudentsPage() {
   }, [])
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <MentorSidebar />
 
-      <div className="flex-1 overflow-auto p-8 space-y-6">
-        
+      <div className="flex-1 overflow-auto p-8 space-y-6 animate-in fade-in duration-300">
+        {/* HEADER */}
         <div>
-          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <Users className="w-8 h-8" />
+          <h2 className="text-3xl font-bold flex items-center gap-2">
+            <Users className="w-7 h-7" />
             Assigned Students
           </h2>
-          <p className="text-muted-foreground mt-2">
-            These students are assigned under your mentorship
+          <p className="text-sm opacity-80 mt-1">
+            Students currently assigned under your mentorship
           </p>
         </div>
 
-        <Card className="border-0 shadow-sm">
+        {/* TABLE CARD */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
           <CardHeader>
             <CardTitle>Students</CardTitle>
-            <CardDescription>
-              Total: {students.length} students assigned to you
+            <CardDescription className="opacity-80">
+              Total: {students.length} students
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-4">
             {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading assigned students...</div>
+              <div className="text-center py-10 opacity-70">
+                Loading assigned students...
+              </div>
             ) : students.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                You have no assigned students yet
+              <div className="text-center py-10 opacity-70">
+                You have no assigned students yet.
               </div>
             ) : (
-              <div className="border border-border rounded-lg overflow-hidden">
+              <div className="border-2 border-[#8B5A2B] rounded-md overflow-hidden bg-[#F6E7C1]">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-secondary/50 hover:bg-secondary/50">
+                    <TableRow className="bg-[#EAD39C]">
                       <TableHead>Name</TableHead>
                       <TableHead>Email</TableHead>
                       <TableHead>Phone</TableHead>
                       <TableHead>Level</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
                     </TableRow>
                   </TableHeader>
 
                   <TableBody>
                     {students.map((student) => (
-                      <TableRow key={student.id} className="hover:bg-secondary/50 transition-colors">
-                        <TableCell className="font-medium">{student.full_name}</TableCell>
+                      <TableRow
+                        key={student.id}
+                        className="transition-colors hover:bg-[#EAD39C]"
+                      >
+                        <TableCell className="font-medium">
+                          {student.full_name}
+                        </TableCell>
 
-                        <TableCell className="text-sm text-muted-foreground">
+                        <TableCell className="text-sm opacity-80">
                           {student.email}
                         </TableCell>
 
@@ -145,7 +163,7 @@ export default function AssignedStudentsPage() {
                         </TableCell>
 
                         <TableCell>
-                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-primary/20 text-primary">
+                          <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-semibold border border-[#3B2A23] bg-[#F2DEB3]">
                             Level {student.current_level}
                           </span>
                         </TableCell>
@@ -156,7 +174,15 @@ export default function AssignedStudentsPage() {
                               href={`https://wa.me/${student.phone}`}
                               target="_blank"
                             >
-                              <Button size="sm" variant="outline" className="gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="
+                                  gap-1 border-[#3B2A23]
+                                  hover:bg-[#EAD39C]
+                                  transition-all duration-200
+                                "
+                              >
                                 <MessageSquare className="w-4 h-4" />
                                 Message
                               </Button>

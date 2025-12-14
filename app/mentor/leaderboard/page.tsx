@@ -1,14 +1,17 @@
 "use client";
 export const dynamic = "force-dynamic";
 
-
-
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Trophy, Award } from "lucide-react"
 import { MentorSidebar } from "@/components/mentor-sidebar"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Trophy, Award, Zap } from "lucide-react"
 
 interface LeaderboardEntry {
   rank: number
@@ -32,13 +35,11 @@ export default function LeaderboardPage() {
       try {
         setLoading(true)
 
-        // 1. Load mentor ID
         const { data: { user } } = await supabase.auth.getUser()
         if (!user?.id) throw new Error("Mentor not logged in")
 
         const mentorId = user.id
 
-        // 2. Load mentor's active students
         const { data: assignedStudents } = await supabase
           .from("student_mentor_assignments")
           .select("student_id")
@@ -48,7 +49,6 @@ export default function LeaderboardPage() {
         const studentIds = assignedStudents?.map(s => s.student_id) ?? []
         setMentorStudents(studentIds)
 
-        // 3. Load leaderboard data
         const { data, error: boardError } = await supabase
           .from("leaderboard")
           .select("rank, student_id, student_name, total_xp, level")
@@ -59,22 +59,17 @@ export default function LeaderboardPage() {
 
         setEntries(data || [])
 
-        // 4. Check if mentor’s student is top 3
         const topThree = data?.slice(0, 3) ?? []
-
-        const topStudent = topThree.find(e =>
-          studentIds.includes(e.student_id)
-        )
+        const topStudent = topThree.find(e => studentIds.includes(e.student_id))
 
         if (topStudent) {
           setTopMessage(
-            `🎉 Your student "${topStudent.student_name}" is in the Top ${topStudent.rank}!`
+            `🏆 Your student "${topStudent.student_name}" is ranked #${topStudent.rank}!`
           )
         }
 
       } catch (err) {
-        const msg = err instanceof Error ? err.message : "Failed to load leaderboard"
-        setError(msg)
+        setError(err instanceof Error ? err.message : "Failed to load leaderboard")
       } finally {
         setLoading(false)
       }
@@ -85,9 +80,9 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1]">
         <MentorSidebar />
-        <div className="flex-1 flex justify-center items-center">
+        <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       </div>
@@ -95,100 +90,126 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <MentorSidebar />
 
-      <div className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6">
+      <div className="flex-1 overflow-auto p-8 space-y-8 animate-in fade-in duration-300">
 
-          {/* PAGE HEADER */}
-          <div className="mb-8">
+        {/* HEADER */}
+        <div className="flex items-center justify-between">
+          <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Trophy className="w-8 h-8" />
+              <Trophy className="w-8 h-8 text-yellow-700" />
               Leaderboard
             </h1>
-            <p className="text-muted-foreground mt-2">Top performers in UPSC Prep</p>
+            <p className="text-sm opacity-80">
+              Competitive rankings across all UPSC aspirants
+            </p>
           </div>
+        </div>
 
-          {/* TOP ALERT FOR MENTOR */}
-          {topMessage && (
-            <div className="mb-6">
-              <Card className="border-green-600 bg-green-50">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <Award className="w-6 h-6 text-green-700" />
-                  <p className="text-green-800 font-medium">{topMessage}</p>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* ERROR MESSAGE */}
-          {error && (
-            <Card className="border-destructive mb-6">
-              <CardContent className="p-6">
-                <p className="text-destructive">Error: {error}</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* LEADERBOARD */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Rankings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {entries.map((entry) => {
-                  const isMentorStudent = mentorStudents.includes(entry.student_id)
-
-                  return (
-                    <div
-                      key={entry.rank}
-                      className={`
-                        flex items-center justify-between p-4 rounded-lg border transition-colors 
-                        ${isMentorStudent ? "bg-green-100 border-green-400" : "hover:bg-muted/50"}
-                      `}
-                    >
-                      {/* LEFT SIDE */}
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="text-center">
-                          {entry.rank === 1 && <span className="text-2xl">🥇</span>}
-                          {entry.rank === 2 && <span className="text-2xl">🥈</span>}
-                          {entry.rank === 3 && <span className="text-2xl">🥉</span>}
-                          {entry.rank > 3 && (
-                            <span className="text-lg font-bold text-muted-foreground">
-                              #{entry.rank}
-                            </span>
-                          )}
-                        </div>
-
-                        <div>
-                          <p className="font-medium flex items-center gap-2">
-                            {entry.student_name}
-
-                            {isMentorStudent && (
-                              <Badge variant="default" className="bg-green-600 text-white">
-                                Your Student
-                              </Badge>
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">Level {entry.level}</p>
-                        </div>
-                      </div>
-
-                      {/* RIGHT SIDE */}
-                      <div className="text-right">
-                        <p className="font-bold text-lg">{entry.total_xp.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">XP</p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+        {/* MENTOR HIGHLIGHT */}
+        {topMessage && (
+          <Card className="border-2 border-yellow-600 bg-[#FFF2C2] shadow-md">
+            <CardContent className="p-4 flex items-center gap-3">
+              <Award className="w-6 h-6 text-yellow-700" />
+              <p className="font-semibold">{topMessage}</p>
             </CardContent>
           </Card>
+        )}
 
+        {/* ERROR */}
+        {error && (
+          <Card className="border-red-600 bg-red-50">
+            <CardContent className="p-4 text-red-700">
+              Error: {error}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* TOP 3 PODIUM */}
+        <div className="grid md:grid-cols-3 gap-4">
+          {entries.slice(0, 3).map((e) => (
+            <Card
+              key={e.rank}
+              className={`
+                border-2 text-center
+                ${e.rank === 1 ? "border-yellow-600 bg-[#FFF4CC]" : ""}
+                ${e.rank === 2 ? "border-gray-400 bg-[#F3F3F3]" : ""}
+                ${e.rank === 3 ? "border-orange-500 bg-[#FFE0C2]" : ""}
+              `}
+            >
+              <CardHeader>
+                <div className="text-3xl">
+                  {e.rank === 1 && "🥇"}
+                  {e.rank === 2 && "🥈"}
+                  {e.rank === 3 && "🥉"}
+                </div>
+                <CardTitle>{e.student_name}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">Level {e.level}</p>
+                <p className="text-xl font-bold mt-2 flex items-center justify-center gap-1">
+                  <Zap className="w-4 h-4" />
+                  {e.total_xp.toLocaleString()} XP
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+
+        {/* FULL RANK LIST */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+          <CardHeader>
+            <CardTitle>All Rankings</CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-2">
+            {entries.map((entry) => {
+              const isMentorStudent = mentorStudents.includes(entry.student_id)
+
+              return (
+                <div
+                  key={entry.rank}
+                  className={`
+                    flex items-center justify-between p-4 rounded-md border
+                    transition-all duration-200
+                    ${isMentorStudent
+                      ? "bg-green-100 border-green-600 animate-pulse"
+                      : "bg-[#F6E7C1] hover:bg-[#EAD39C]"}
+                  `}
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="font-bold w-8 text-center">
+                      #{entry.rank}
+                    </span>
+
+                    <div>
+                      <p className="font-semibold flex items-center gap-2">
+                        {entry.student_name}
+                        {isMentorStudent && (
+                          <Badge className="bg-green-600 text-white">
+                            Your Student
+                          </Badge>
+                        )}
+                      </p>
+                      <p className="text-xs opacity-80">
+                        Level {entry.level}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <p className="font-bold">
+                      {entry.total_xp.toLocaleString()}
+                    </p>
+                    <p className="text-xs opacity-80">XP</p>
+                  </div>
+                </div>
+              )
+            })}
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

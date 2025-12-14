@@ -1,8 +1,8 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
-  "/mentor/subjects/page": "app/mentor/subjects/page.js",
+  "/mentor/home/page": "app/mentor/home/page.js",
   "/auth/login/page": "app/auth/login/page.js",
-  "/mentor/yourstudents/page": "app/mentor/yourstudents/page.js",
   "/student/page": "app/student/page.js",
-  "/mentor/command-center/page": "app/mentor/command-center/page.js"
+  "/auth/welcome/page": "app/auth/welcome/page.js",
+  "/no-access/page": "app/no-access/page.js",
+  "/mentor/profile/page": "app/mentor/profile/page.js"
 }

@@ -1,100 +1,126 @@
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Zap, BookOpen, Trophy, BarChart3, Users } from "lucide-react"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+import { Sword, BookOpen, Trophy, BarChart3, Users } from "lucide-react"
 
 export default function Home() {
   const features = [
     {
       icon: BookOpen,
-      title: "Comprehensive Study Materials",
-      description: "Access organized study materials across all UPSC subjects with video, articles, and PDFs",
+      title: "Ancient Knowledge Scrolls",
+      description:
+        "Explore well-structured UPSC knowledge across all worlds with scrolls, visions, and manuscripts.",
     },
     {
-      icon: Zap,
-      title: "Gamified Learning",
-      description: "Earn points, badges, and climb levels as you progress through your preparation",
+      icon: Sword,
+      title: "Trials & Battles",
+      description:
+        "Face challenging trials, earn XP, unlock levels, and grow stronger with every victory.",
     },
     {
       icon: Trophy,
-      title: "Leaderboards & Achievements",
-      description: "Compete with peers and track your achievements on real-time leaderboards",
+      title: "Hall of Glory",
+      description:
+        "Rise through the High Scores and etch your name among elite aspirants.",
     },
     {
       icon: BarChart3,
-      title: "Performance Analytics",
-      description: "Get detailed insights into your accuracy, consistency, and areas for improvement",
+      title: "Battle Analytics",
+      description:
+        "Study your accuracy, consistency, and weaknesses after every trial.",
     },
     {
       icon: Users,
-      title: "Expert Mentors",
-      description: "Connect with experienced UPSC mentors for personalized guidance",
+      title: "Guild Masters",
+      description:
+        "Train under experienced mentors who guide you through your journey.",
     },
     {
       icon: BookOpen,
-      title: "Practice Tests",
-      description: "Take unlimited practice tests aligned with actual UPSC exam pattern",
+      title: "Endless Practice Grounds",
+      description:
+        "Sharpen your skills with unlimited practice trials aligned with UPSC patterns.",
     },
   ]
 
   return (
-    <div className="w-full">
-      {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center justify-center px-4 md:px-8 bg-gradient-to-br from-background via-background to-secondary overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-1/2 -right-1/2 w-96 h-96 rounded-full bg-primary/20 blur-3xl" />
-          <div className="absolute -bottom-1/2 -left-1/2 w-96 h-96 rounded-full bg-accent/20 blur-3xl" />
-        </div>
-
-        <div className="relative z-10 max-w-4xl mx-auto text-center space-y-8">
+    <div className="w-full bg-[#F6E7C1] text-[#3B2A23]">
+      {/* HERO / GAME INTRO */}
+      <section className="min-h-screen flex items-center justify-center px-4 py-20">
+        <div className="max-w-4xl text-center space-y-10">
           <div className="space-y-4">
-            <h1 className="text-5xl md:text-6xl font-bold tracking-tight">
-              Master the UPSC with
-              <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                 Gamify IAS Academy
+            <p className="text-sm tracking-widest uppercase">
+              ⚔️ Welcome to the Realm
+            </p>
+            <h1 className="text-5xl md:text-6xl font-bold">
+              Gamify IAS
+              <span className="block text-[#8B5A2B]">
+                Academy
               </span>
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Premium gamified learning platform for UPSC civil service exam preparation. Practice, compete, and succeed
-              with thousands of aspirants.
+            <p className="text-lg max-w-2xl mx-auto">
+              A gamified UPSC preparation realm where aspirants become warriors,
+              trials forge champions, and discipline builds legends.
             </p>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/signup">
-              <Button size="lg" className="w-full sm:w-auto">
-                Start Learning
+              <Button
+                size="lg"
+                className="border-2 border-[#3B2A23] bg-[#C47A2C] text-[#3B2A23] hover:bg-[#B96C1E]"
+              >
+                Sign Up
               </Button>
             </Link>
             <Link href="/auth/login">
-              <Button size="lg" variant="outline" className="w-full sm:w-auto bg-transparent">
-                Sign In
+              <Button
+                size="lg"
+                variant="outline"
+                className="border-2 border-[#3B2A23] bg-transparent text-[#3B2A23]"
+              >
+                Login
               </Button>
             </Link>
           </div>
 
           <div className="grid md:grid-cols-3 gap-4 mt-12">
             {[
-              { label: "Active Learners", value: "100+" },
-              { label: "Practice Questions", value: "25K+" },
-              { label: "Success Rate", value: "95%" },
+              { label: "Active Warriors", value: "100+" },
+              { label: "Trials Available", value: "25K+" },
+              { label: "Victory Rate", value: "95%" },
             ].map((stat, idx) => (
-              <div key={idx} className="p-4 rounded-lg bg-card/50 backdrop-blur border border-border">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div
+                key={idx}
+                className="border-2 border-[#8B5A2B] bg-[#F2DEB3] p-4"
+              >
+                <div className="text-2xl font-bold">
+                  {stat.value}
+                </div>
+                <div className="text-sm">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 px-4 md:px-8">
+      {/* FEATURES / QUEST SYSTEM */}
+      <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto space-y-12">
           <div className="text-center space-y-4">
-            <h2 className="text-4xl font-bold">Why Choose<span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Gamify IAS Academy?</span></h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to ace the UPSC examination in one comprehensive platform
+            <h2 className="text-4xl font-bold">
+              Why Enter This Realm?
+            </h2>
+            <p className="text-lg max-w-2xl mx-auto">
+              Everything required to conquer the UPSC trials lies within this
+              world.
             </p>
           </div>
 
@@ -102,13 +128,20 @@ export default function Home() {
             {features.map((feature, idx) => {
               const Icon = feature.icon
               return (
-                <Card key={idx} className="border-0 shadow-sm hover:shadow-md transition-shadow">
+                <Card
+                  key={idx}
+                  className="border-2 border-[#8B5A2B] bg-[#F2DEB3]"
+                >
                   <CardHeader>
-                    <Icon className="w-8 h-8 text-primary mb-2" />
-                    <CardTitle className="text-lg">{feature.title}</CardTitle>
+                    <Icon className="w-8 h-8 mb-2" />
+                    <CardTitle className="text-lg">
+                      {feature.title}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-base">{feature.description}</CardDescription>
+                    <p className="text-sm">
+                      {feature.description}
+                    </p>
                   </CardContent>
                 </Card>
               )
@@ -117,15 +150,24 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 px-4 md:px-8 bg-gradient-to-r from-primary/10 to-accent/10">
+      {/* FINAL CTA */}
+      <section className="py-20 px-4 bg-[#EAD39C]">
         <div className="max-w-2xl mx-auto text-center space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">Ready to Transform Your UPSC Prep?</h2>
-          <p className="text-lg text-muted-foreground">
-            Join thousands of aspirants who are already crushing their UPSC goals with<span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"> Gamify IAS Academy </span>
+          <h2 className="text-4xl font-bold">
+            Your Journey Awaits
+          </h2>
+          <p className="text-lg">
+            Thousands have entered this realm.
+            <br />
+            Few emerge as legends.
           </p>
           <Link href="/auth/signup">
-            <Button size="lg">Get Started for Free</Button>
+            <Button
+              size="lg"
+              className="border-2 border-[#3B2A23] bg-[#C47A2C] text-[#3B2A23]"
+            >
+              Enter the Realm
+            </Button>
           </Link>
         </div>
       </section>
