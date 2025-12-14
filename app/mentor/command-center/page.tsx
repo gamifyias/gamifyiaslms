@@ -100,20 +100,22 @@ export default function MentorCommandCenter() {
         const studentProfiles: StudentProfileRecord[] = spRaw ?? []
 
         const combined = profiles.map((p: any) => {
-          const lvl =
-            levelData.find((l) => l.student_id === p.id) || {}
-          const sp =
-            studentProfiles.find((s) => s.id === p.id) || {}
+          const lvl: LevelRecord | undefined = levelData.find(
+            (l) => l.student_id === p.id,
+          )
+          const sp: StudentProfileRecord | undefined = studentProfiles.find(
+            (s) => s.id === p.id,
+          )
 
           return {
             ...p,
             stats: {
-              current_level: lvl.current_level ?? 1,
-              total_points: lvl.total_xp ?? 0,
-              overall_accuracy: sp.overall_accuracy ?? 0,
-              current_streak: sp.current_streak ?? 0,
-              total_hours_studied: sp.total_hours_studied ?? 0,
-              last_study_date: sp.last_study_date ?? null,
+              current_level: lvl?.current_level ?? 1,
+              total_points: lvl?.total_xp ?? 0,
+              overall_accuracy: sp?.overall_accuracy ?? 0,
+              current_streak: sp?.current_streak ?? 0,
+              total_hours_studied: sp?.total_hours_studied ?? 0,
+              last_study_date: sp?.last_study_date ?? null,
             },
           }
         })
