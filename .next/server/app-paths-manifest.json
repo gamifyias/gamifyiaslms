@@ -1,8 +1,9 @@
 {
+  "/mentor/manage-roles/page": "app/mentor/manage-roles/page.js",
+  "/student/dashboard/page": "app/student/dashboard/page.js",
+  "/student/page": "app/student/page.js",
   "/mentor/home/page": "app/mentor/home/page.js",
   "/auth/login/page": "app/auth/login/page.js",
-  "/student/page": "app/student/page.js",
   "/auth/welcome/page": "app/auth/welcome/page.js",
-  "/no-access/page": "app/no-access/page.js",
-  "/mentor/profile/page": "app/mentor/profile/page.js"
+  "/no-access/page": "app/no-access/page.js"
 }

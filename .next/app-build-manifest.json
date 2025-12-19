@@ -21,55 +21,50 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/welcome/page.js"
     ],
-    "/mentor/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/page.js"
-    ],
     "/mentor/home/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/mentor/home/page.js"
     ],
-    "/mentor/command-center/page": [
+    "/mentor/manage-roles/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/mentor/command-center/page.js"
-    ],
-    "/mentor/yourstudents/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/yourstudents/page.js"
-    ],
-    "/mentor/students/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/students/page.js"
-    ],
-    "/mentor/command-center/student-progress/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/command-center/student-progress/page.js"
-    ],
-    "/mentor/leaderboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/leaderboard/page.js"
-    ],
-    "/mentor/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/profile/page.js"
+      "static/chunks/app/mentor/manage-roles/page.js"
     ],
     "/student/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/dashboard/page.js"
     ],
+    "/admin/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/page.js"
+    ],
+    "/admin/mentors/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/mentors/page.js"
+    ],
+    "/admin/manage-users/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/admin/manage-users/page.js"
+    ],
     "/student/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/page.js"
+    ],
+    "/mentor/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/mentor/page.js"
+    ],
+    "/mentor/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/mentor/profile/page.js"
     ],
     "/no-access/page": [
       "static/chunks/webpack.js",

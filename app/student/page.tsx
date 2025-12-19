@@ -1,67 +1,54 @@
-"use client";
 export const dynamic = "force-dynamic";
 
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
+export default async function MentorPage() {
+  const supabase = await createClient();
+  
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-import { useEffect, useState } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { Loader2 } from "lucide-react"
-import { StudentHomeDashboard } from "@/components/student-home-dashboard"
-import { StudentSidebar } from "@/components/student-sidebar"
-
-export default function StudentPage() {
-  const [studentId, setStudentId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  useEffect(() => {
-    const getStudentId = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (user?.id) {
-          setStudentId(user.id)
-        }
-      } catch (err) {
-        console.error("Error getting student ID:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    getStudentId()
-  }, [supabase])
-
-  if (loading) {
-    return (
-      <div className="flex h-screen bg-background">
-        <StudentSidebar />
-        <div className="flex-1 flex justify-center items-center">
-          <Loader2 className="w-8 h-8 animate-spin" />
-        </div>
-      </div>
-    )
+  // Not logged in → redirect to login
+  if (!user) {
+    redirect("/auth/login");
   }
 
-  if (!studentId) {
-    return (
-      <div className="flex h-screen bg-background">
-        <StudentSidebar />
-        <div className="flex-1 flex justify-center items-center text-destructive">
-          Failed to load student ID
-        </div>
-      </div>
-    )
+  // Fetch role
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  // No profile → redirect to onboarding/welcome
+  if (!profile) {
+    redirect("/auth/welcome");
   }
 
+  const role = profile.role;
+
+  // If NOT mentor → redirect to correct dashboard
+  if (role !== "student") {
+    if (role === "student") redirect("/student/dashboard");
+    if (role === "admin") redirect("/admin");
+    redirect("/"); // fallback
+  }
+
+  // If role IS mentor → show this page
   return (
-    <div className="flex h-screen bg-background">
-      <StudentSidebar />
-      <div className="flex-1 overflow-auto">
-        <StudentHomeDashboard studentId={studentId} />
-      </div>
+    <div className="w-full h-screen flex flex-col items-center justify-center text-center p-6">
+      <h1 className="text-2xl font-semibold mb-4">You're On the Wrong URL</h1>
+      <p className="text-muted-foreground mb-6">
+        It seems you're trying to access a page that doesn't exist for students.
+      </p>
+      <a
+        href="/student/dashboard"
+        className="px-6 py-3 rounded-md bg-primary text-white hover:bg-primary/80 transition"
+      >
+        Go to Home
+      </a>
     </div>
-  )
+  );
 }

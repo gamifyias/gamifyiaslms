@@ -15,6 +15,7 @@ import {
   BookOpen,
   User,
   Menu,
+  Users2Icon,
 } from "lucide-react"
 import { Users2 } from "lucide-react"
 
@@ -56,6 +57,7 @@ export function MentorSidebar() {
   const menu = [
     { icon: LayoutDashboard, label: "Home", href: "/mentor/home" },
     { icon: Gamepad2, label: "Command Center", href: "/mentor/command-center" },
+    { icon: Users2, label: "Manage Roles", href: "/mentor/manage-roles" },
     { icon: Users, label: "My Students", href: "/mentor/yourstudents" },
     { icon: Users2, label: "All Students", href: "/mentor/students" },
     { icon: BookOpen, label: "Subjects & Topics", href: "/mentor/subjects" },
