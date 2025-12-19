@@ -21,55 +21,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/welcome/page.js"
     ],
-    "/mentor/home/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/home/page.js"
-    ],
-    "/mentor/manage-roles/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/manage-roles/page.js"
-    ],
     "/student/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/dashboard/page.js"
     ],
-    "/admin/page": [
+    "/mentor/home/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/page.js"
+      "static/chunks/app/mentor/home/page.js"
     ],
-    "/admin/mentors/page": [
+    "/mentor/subjects/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/mentors/page.js"
+      "static/chunks/app/mentor/subjects/page.js"
     ],
-    "/admin/manage-users/page": [
+    "/mentor/assign-mentor/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/manage-users/page.js"
+      "static/chunks/app/mentor/assign-mentor/page.js"
     ],
-    "/student/page": [
+    "/mentor/students/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/student/page.js"
+      "static/chunks/app/mentor/students/page.js"
     ],
-    "/mentor/page": [
+    "/mentor/yourstudents/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/mentor/page.js"
-    ],
-    "/mentor/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/profile/page.js"
-    ],
-    "/no-access/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/no-access/page.js"
+      "static/chunks/app/mentor/yourstudents/page.js"
     ]
   }
 }

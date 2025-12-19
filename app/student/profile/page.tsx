@@ -144,7 +144,7 @@ export default function StudentProfilePage() {
 
     if (loading) {
       return (
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
           <StudentSidebar />
           <div className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin" />
@@ -155,7 +155,7 @@ export default function StudentProfilePage() {
   
     if (!studentId) {
       return (
-        <div className="flex h-screen bg-background">
+        <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
           <StudentSidebar />
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center text-destructive">Failed to load student</div>
@@ -166,11 +166,11 @@ export default function StudentProfilePage() {
   
 
   return (
-  <div className="flex h-screen bg-background">
+  <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
     <StudentSidebar />
 
     {/* Content Area */}
-    <div className="flex-1 overflow-y-auto bg-muted/40">
+    <div className="flex-1 overflow-y-auto bg-[#F6E7C1]">
       <div className="max-w-6xl mx-auto py-10 px-6">
 
         {/* Page Header */}

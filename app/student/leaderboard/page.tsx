@@ -57,17 +57,17 @@ export default function LeaderboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center">
           <Loader2 className="w-8 h-8 animate-spin" />
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <StudentSidebar />
 
       <div className="flex-1 overflow-auto">

@@ -10,14 +10,7 @@ const robotoMono = Roboto_Mono({ subsets: ["latin"], variable: "--font-mono" })
 export const metadata: Metadata = {
   title: "Gamify IAS",
   description: "Premium UPSC exam preparation with gamification",
-  icons: {
-    icon: [
-      {
-        url: "/logo.jpg",
-        type: "image/jpeg",
-      },
-    ],
-  },
+  // Removed favicon/icon to clear tab logo
   generator: "Tirth Joshi",
 }
 

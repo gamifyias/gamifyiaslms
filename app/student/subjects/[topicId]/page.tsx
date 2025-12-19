@@ -39,7 +39,7 @@ export default function TopicDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -50,7 +50,7 @@ export default function TopicDetailPage() {
 
   if (!studentId || !topicId) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center text-destructive">
           Missing required parameters
@@ -60,7 +60,7 @@ export default function TopicDetailPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <StudentSidebar />
       <TopicPage topicId={topicId} studentId={studentId} showSidebar={false} />
     </div>

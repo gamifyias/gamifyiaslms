@@ -38,7 +38,7 @@ export default function TrainingDojoPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -49,7 +49,7 @@ export default function TrainingDojoPage() {
 
   if (!studentId) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center text-destructive">
           Failed to load student ID
@@ -59,7 +59,7 @@ export default function TrainingDojoPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <StudentSidebar />
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto p-6">

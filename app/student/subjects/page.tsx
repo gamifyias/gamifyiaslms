@@ -329,7 +329,7 @@ export default function SubjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 flex justify-center items-center">
           <Loader2 className="w-8 h-8 animate-spin" />
@@ -340,7 +340,7 @@ export default function SubjectsPage() {
 
   if (error) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 overflow-auto p-6">
           <Card className="border-destructive">
@@ -355,7 +355,7 @@ export default function SubjectsPage() {
 
   if (subjects.length === 0) {
     return (
-      <div className="flex h-screen bg-background">
+      <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
         <StudentSidebar />
         <div className="flex-1 overflow-auto p-6">
           <div className="text-center">
@@ -369,7 +369,7 @@ export default function SubjectsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
       <StudentSidebar />
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto p-6">

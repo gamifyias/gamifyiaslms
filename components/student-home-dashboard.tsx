@@ -37,6 +37,7 @@ export function StudentHomeDashboard({ studentId }: { studentId: string }) {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -192,14 +193,14 @@ export function StudentHomeDashboard({ studentId }: { studentId: string }) {
   const progressToNextLevel = Math.min((stats.totalXP % 1000) / 10, 100)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-secondary/5 to-background">
+    <div className="p-8 space-y-6 bg-[#F6E7C1] text-[#3B2A23] min-h-screen">
       {/* Header Section */}
-      <div className="bg-gradient-to-r from-primary/10 to-accent/10 border-b border-border">
+      <div className="border-b border-[#8B5A2B] bg-[#F2DEB3]">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
             <div className="space-y-2">
-              <h1 className="text-4xl font-bold text-foreground">Level Up Your UPSC Prep</h1>
-              <p className="text-muted-foreground">Welcome back! {todayQuests.length} topics available today.</p>
+              <h1 className="text-3xl font-bold">Student Dashboard</h1>
+              <p className="text-sm">Welcome back! {todayQuests.length} topics available today.</p>
             </div>
             <div className="text-right space-y-2">
               <div className="flex items-center gap-2">
@@ -218,6 +219,7 @@ export function StudentHomeDashboard({ studentId }: { studentId: string }) {
             </div>
             <Progress value={progressToNextLevel} className="h-3 bg-muted" />
           </div>
+      
         </div>
       </div>
 

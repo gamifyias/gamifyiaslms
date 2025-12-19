@@ -67,28 +67,36 @@ export function StudentSidebar() {
 
   // SIDEBAR CONTENT
   const SidebarContent = () => (
-    <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
-      
+    <div
+      className="
+        flex flex-col h-full w-64
+        bg-[#F2DEB3] text-[#3B2A23]
+        border-r-2 border-[#8B5A2B]
+      "
+    >
       {/* HEADER */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-5 border-b-2 border-[#8B5A2B]">
         <div className="flex items-center gap-3">
           {avatarUrl ? (
-            <img src={avatarUrl} className="w-10 h-10 rounded-full object-cover" />
+            <img
+              src={avatarUrl}
+              className="w-10 h-10 rounded-full object-cover border-2 border-[#3B2A23]"
+            />
           ) : (
-            <div className="w-10 h-10 bg-muted rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 border-2 border-[#3B2A23] rounded-full flex items-center justify-center bg-[#EAD39C]">
               <User className="w-5 h-5" />
             </div>
           )}
 
           <div>
-            <p className="font-medium">{fullName}</p>
-            <p className="text-xs text-muted-foreground">Student Panel</p>
+            <p className="font-semibold leading-tight">{fullName}</p>
+            <p className="text-xs opacity-80">Student Panel</p>
           </div>
         </div>
       </div>
 
       {/* MENU */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {menu.map((item) => {
           const Icon = item.icon
           const active =
@@ -96,25 +104,38 @@ export function StudentSidebar() {
 
           return (
             <Link key={item.href} href={item.href}>
-              <Button
-                variant={active ? "default" : "ghost"}
+              <button
                 className={cn(
-                  "w-full justify-start gap-3",
-                  active && "bg-sidebar-primary text-sidebar-primary-foreground"
+                  `
+                  w-full flex items-center gap-3 px-3 py-2 text-sm text-left
+                  border-2
+                  transition-all duration-200 ease-out
+                  `,
+                  active
+                    ? "bg-[#EAD39C] border-[#3B2A23] font-semibold translate-x-[2px]"
+                    : "bg-[#F6E7C1] border-[#8B5A2B] hover:bg-[#EAD39C] hover:translate-x-[2px]"
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-105" />
                 {item.label}
-              </Button>
+              </button>
             </Link>
           )
         })}
       </nav>
 
       {/* LOGOUT */}
-      <div className="p-4 border-t border-sidebar-border">
-        <Button className="w-full gap-2" variant="outline" onClick={logout}>
-          <LogOut className="w-4 h-4" />
+      <div className="p-3 border-t-2 border-[#8B5A2B]">
+        <Button
+          onClick={logout}
+          variant="outline"
+          className="
+            w-full border-2 border-[#3B2A23]
+            transition-all duration-200
+            hover:bg-[#EAD39C]
+          "
+        >
+          <LogOut className="w-4 h-4 mr-2" />
           Logout
         </Button>
       </div>

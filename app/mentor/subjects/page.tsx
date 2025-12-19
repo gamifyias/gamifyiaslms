@@ -12,6 +12,13 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select"
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -61,6 +68,17 @@ interface StudyMaterial {
   resource_url: string
   duration_minutes: number | null
 }
+
+const MATERIAL_TYPES = [
+  { value: "video", label: "Video" },
+  { value: "pdf", label: "PDF" },
+  { value: "notes", label: "Notes" },
+  { value: "slides", label: "Slides" },
+  { value: "test", label: "Test" },
+  { value: "test-solution", label: "Test Solution" },
+  { value: "reference", label: "Reference" },
+  { value: "extra", label: "Extra" },
+]
 
 export default function MentorSubjectsPage() {
   const supabase = createClient()
@@ -889,21 +907,31 @@ export default function MentorSubjectsPage() {
                                           }))
                                         }
                                       />
-                                      <Input
-                                        placeholder='Content type (e.g. "video", "pdf", "notes", "test")'
+                                      <Select
                                         value={
                                           materialDraft.topicId === topic.id
-                                            ? materialDraft.content_type
-                                            : "video"
+                                            ? materialDraft.content_type || ""
+                                            : ""
                                         }
-                                        onChange={(e) =>
+                                        onValueChange={(v) =>
                                           setMaterialDraft((prev) => ({
                                             ...prev,
                                             topicId: topic.id,
-                                            content_type: e.target.value,
+                                            content_type: v,
                                           }))
                                         }
-                                      />
+                                      >
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Material Type" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {MATERIAL_TYPES.map((t) => (
+                                            <SelectItem value={t.value} key={t.value}>
+                                              {t.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
                                       <Button
                                         className="w-full"
                                         onClick={handleSaveMaterial}
@@ -1000,16 +1028,26 @@ export default function MentorSubjectsPage() {
                                                   }))
                                                 }
                                               />
-                                              <Input
-                                                placeholder="Content type"
-                                                value={materialDraft.content_type}
-                                                onChange={(e) =>
+                                              <Select
+                                                value={materialDraft.content_type || ""}
+                                                onValueChange={(v) =>
                                                   setMaterialDraft((prev) => ({
                                                     ...prev,
-                                                    content_type: e.target.value,
+                                                    content_type: v,
                                                   }))
                                                 }
-                                              />
+                                              >
+                                                <SelectTrigger>
+                                                  <SelectValue placeholder="Material Type" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                  {MATERIAL_TYPES.map((t) => (
+                                                    <SelectItem value={t.value} key={t.value}>
+                                                      {t.label}
+                                                    </SelectItem>
+                                                  ))}
+                                                </SelectContent>
+                                              </Select>
                                               <Button
                                                 className="w-full"
                                                 onClick={handleSaveMaterial}
