@@ -61,7 +61,7 @@ export function MentorSidebar() {
     { icon: Home, label: "Home", href: "/mentor/home" },
     { icon: Radar, label: "Command Center", href: "/mentor/command-center" },
     { icon: ShieldCheck, label: "Manage Roles", href: "/mentor/manage-roles" },
-    { icon: UserPlus, label: "Assign Mentors", href: "/mentor/assign-mentors" },
+    { icon: UserPlus, label: "Assign Mentors", href: "/mentor/assign-mentor" },
     { icon: UserCheck, label: "My Students", href: "/mentor/yourstudents" },
     { icon: Users, label: "All Students", href: "/mentor/students" },
     { icon: Library, label: "Subjects & Topics", href: "/mentor/subjects" },
