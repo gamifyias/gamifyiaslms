@@ -1,6 +1,7 @@
 {
-  "/mentor/home/page": "app/mentor/home/page.js",
   "/auth/login/page": "app/auth/login/page.js",
-  "/auth/signup/page": "app/auth/signup/page.js",
-  "/page": "app/page.js"
+  "/student/dashboard/page": "app/student/dashboard/page.js",
+  "/mentor/home/page": "app/mentor/home/page.js",
+  "/mentor/profile/page": "app/mentor/profile/page.js",
+  "/auth/welcome/page": "app/auth/welcome/page.js"
 }

@@ -1,231 +1,246 @@
 "use client"
 export const dynamic = "force-dynamic"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useRouter } from "next/navigation"
-import { useState, useEffect } from "react"
-import { useToast } from "@/hooks/use-toast"
 
 type UserRole = "student" | "mentor" | "admin"
 
-export default function WelcomePage() {
-  const [role, setRole] = useState<UserRole>("student")
-  const [isLoading, setIsLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+const fadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  visible: { opacity: 1, y: 0 },
+}
 
+export default function WelcomePage() {
   const router = useRouter()
-  const { toast } = useToast()
+  const supabase = createClient()
+
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  const [role, setRole] = useState<UserRole | "null">("null")
+  const [profileId, setProfileId] = useState("")
+
+  // profile fields
+  const [phone, setPhone] = useState("")
+  const [bio, setBio] = useState("")
+
+  // mentor-only fields
+  const [specialization, setSpecialization] = useState("")
+  const [experience, setExperience] = useState("")
+
+  const [missing, setMissing] = useState<string[]>([])
 
   useEffect(() => {
-    const checkUser = async () => {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+    const init = async () => {
+      const { data } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (!data.user) {
         router.push("/auth/login")
         return
       }
 
-      setUser(user)
-
       const { data: profile } = await supabase
         .from("profiles")
-        .select("role")
-        .eq("id", user.id)
+        .select("*")
+        .eq("id", data.user.id)
         .single()
 
-      if (profile?.role) {
-        if (profile.role === "null") {
-          router.push("/no-access");
-          return;
+      // ROLE NULL → HARD BLOCK
+      if (!profile || profile.role === "null") {
+        router.push("/no-access")
+        return
+      }
+
+      setRole(profile.role)
+      setProfileId(profile.id)
+      setPhone(profile.phone || "")
+      setBio(profile.bio || "")
+
+      const missingFields: string[] = []
+
+      if (!profile.phone) missingFields.push("Phone number")
+      if (!profile.bio) missingFields.push("Bio")
+
+      if (profile.role === "mentor") {
+        const { data: mentor } = await supabase
+          .from("mentor_profiles")
+          .select("*")
+          .eq("id", profile.id)
+          .single()
+
+        if (mentor) {
+          setSpecialization(mentor.specialization || "")
+          setExperience(
+            mentor.years_of_experience?.toString() || ""
+          )
+
+          if (!mentor.specialization)
+            missingFields.push("Specialization")
+          if (!mentor.years_of_experience)
+            missingFields.push("Experience")
+        } else {
+          // mentor row missing entirely
+          missingFields.push("Specialization", "Experience")
         }
-        
-        const redirectPath =
+      }
+
+      // ✅ PROFILE COMPLETE → REDIRECT, DO NOT SHOW PAGE
+      if (missingFields.length === 0) {
+        const redirect =
           profile.role === "admin"
             ? "/admin"
             : profile.role === "mentor"
             ? "/mentor/home"
             : "/student/dashboard"
 
-        router.push(redirectPath)
+        router.push(redirect)
         return
       }
 
-      setIsCheckingAuth(false)
+      // ❌ PROFILE INCOMPLETE → SHOW PAGE
+      setMissing(missingFields)
+      setLoading(false)
     }
 
-    checkUser()
-  }, [router])
+    init()
+  }, [router, supabase])
 
-  const handleRoleSelection = async () => {
-    setIsLoading(true)
-    const supabase = createClient()
+  const handleSave = async () => {
+    setSaving(true)
 
-    try {
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          role,
-          full_name: user?.user_metadata?.full_name,
-        },
+    await supabase
+      .from("profiles")
+      .update({
+        phone,
+        bio,
+        updated_at: new Date(),
       })
-      if (error) throw error
+      .eq("id", profileId)
 
-      const { error: profileError } = await supabase.from("profiles").upsert(
+    if (role === "mentor") {
+      await supabase.from("mentor_profiles").upsert(
         {
-          id: user.id,
-          full_name: user?.user_metadata?.full_name || user.email,
-          email: user.email,
-          role,
+          id: profileId,
+          profile_id: profileId,
+          specialization,
+          years_of_experience: experience
+            ? Number(experience)
+            : null,
         },
-        { onConflict: "id" },
+        { onConflict: "id" }
       )
-      if (profileError) throw profileError
-
-      if (role === "mentor") {
-        const { error } = await supabase.from("mentor_profiles").upsert(
-          {
-            id: user.id,
-            profile_id: user.id,
-            specialization: "UPSC",
-          },
-          { onConflict: "id" },
-        )
-        if (error) throw error
-      }
-
-      if (role === "student") {
-        const { error } = await supabase.from("student_profiles").upsert(
-          {
-            id: user.id,
-            profile_id: user.id,
-          },
-          { onConflict: "id" },
-        )
-        if (error) throw error
-      }
-
-      toast({
-        title: "⚔️ Oath Accepted",
-        description: `You have entered the realm as a ${role}.`,
-      })
-
-      const redirectPath =
-        role === "admin"
-          ? "/admin"
-          : role === "mentor"
-          ? "/mentor/home"
-          : "/student/dashboard"
-
-      setTimeout(() => {
-        router.push(redirectPath)
-      }, 600)
-    } catch (err: any) {
-      toast({
-        title: "⚠️ Ritual Failed",
-        description: err?.message || "Something went wrong.",
-        variant: "destructive",
-      })
-      setIsLoading(false)
     }
+
+    router.refresh()
+    setSaving(false)
   }
 
-  if (isCheckingAuth) {
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F6E7C1] text-[#3B2A23]">
-        <p className="text-lg">Preparing the Realm...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0F131A] text-[#E9ECF2]">
+        Preparing your campaign…
       </div>
     )
   }
 
+  const redirect =
+    role === "admin"
+      ? "/admin"
+      : role === "mentor"
+      ? "/mentor/home"
+      : "/student/dashboard"
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-[#F6E7C1] text-[#3B2A23]">
-      <div className="w-full max-w-5xl space-y-10">
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0F131A] text-[#E9ECF2]">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        className="max-w-4xl w-full space-y-10"
+      >
         {/* HEADER */}
-        <div className="text-center space-y-2">
-          <p className="uppercase tracking-widest text-sm">
-            🏰 Choose Your Path
-          </p>
-          <h1 className="text-4xl font-bold">
-            Enter the Realm of
-            <span className="block text-[#8B5A2B]">
-              Gamify IAS Academy
-            </span>
+        <motion.div variants={fadeUp} className="text-center space-y-4">
+          <h1 className="text-4xl font-semibold text-[#C8A24A]">
+            Complete Your Profile
           </h1>
-          <p>Select your destiny to begin.</p>
-        </div>
+          <p className="text-[#B5BDCF]">
+            Some required information is missing.
+            You can complete it now or skip for later.
+          </p>
+        </motion.div>
 
-        {/* ROLE CARDS */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {[
-            {
-              id: "student" as const,
-              title: "Student",
-              icon: "📜",
-              desc: "Train, battle trials, and rise through levels.",
-              features: ["Trials", "XP & Levels", "Leaderboards"],
-            },
-            {
-              id: "mentor" as const,
-              title: "Mentor",
-              icon: "🧙",
-              desc: "Guide warriors and command the guild.",
-              features: ["Create Trials", "Track Students", "Insights"],
-            },
-            {
-              id: "admin" as const,
-              title: "Game Master",
-              icon: "👑",
-              desc: "Rule the realm and maintain balance.",
-              features: ["Users", "Systems", "Analytics"],
-            },
-          ].map((opt) => (
-            <Card
-              key={opt.id}
-              onClick={() => setRole(opt.id)}
-              className={`cursor-pointer border-2 ${
-                role === opt.id
-                  ? "border-[#3B2A23] bg-[#EAD39C]"
-                  : "border-[#8B5A2B] bg-[#F2DEB3]"
-              }`}
-            >
-              <CardHeader>
-                <div className="text-4xl">{opt.icon}</div>
-                <CardTitle>{opt.title}</CardTitle>
-                <p className="text-sm">{opt.desc}</p>
-              </CardHeader>
-              <CardContent>
-                <ul className="text-sm space-y-1">
-                  {opt.features.map((f) => (
-                    <li key={f}>• {f}</li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {/* FORM */}
+        <motion.div variants={fadeUp}>
+          <Card className="bg-[#161B26] border border-[#2A3042]">
+            <CardHeader>
+              <CardTitle className="text-[white]">Required Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Input className="text-[white]"
+                placeholder="Phone number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+              <Textarea className="text-[white]"
+                placeholder="Short bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+              />
 
-        {/* CONTINUE */}
-        <Button
-          size="lg"
-          disabled={isLoading}
-          onClick={handleRoleSelection}
-          className="w-full border-2 border-[#3B2A23] bg-[#C47A2C] text-[#3B2A23]"
-        >
-          {isLoading
-            ? "Sealing Your Fate..."
-            : `Continue as ${role.charAt(0).toUpperCase() + role.slice(1)}`}
-        </Button>
-      </div>
+              {role === "mentor" && (
+                <>
+                  <Input className="text-[white]"
+                    placeholder="Specialization"
+                    value={specialization}
+                    onChange={(e) =>
+                      setSpecialization(e.target.value)
+                    }
+                  />
+                  <Input className="text-[white]"
+                    placeholder="Years of experience"
+                    type="number"
+                    value={experience}
+                    onChange={(e) =>
+                      setExperience(e.target.value)
+                    }
+                  />
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* ACTIONS */}
+        <motion.div variants={fadeUp} className="flex gap-4">
+          <Button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#C8A24A] text-[#0F131A]"
+          >
+            {saving ? "Saving..." : "Save Details"}
+          </Button>
+
+          <Button
+            variant="outline"
+            className="border-[#2A3042] text-[black]"
+            onClick={() => router.push(redirect)}
+          >
+            Continue To Dashboard
+          </Button>
+        </motion.div>
+      </motion.div>
     </div>
   )
 }
