@@ -1,16 +1,20 @@
-"use client";
-
+"use client"
 
 import type React from "react"
+import { useState } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useState } from "react"
 import { AlertCircle } from "lucide-react"
 
 export default function SignupPage() {
@@ -46,7 +50,8 @@ export default function SignupPage() {
         password,
         options: {
           emailRedirectTo:
-            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL || `${window.location.origin}/auth/welcome`,
+            process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+            `${window.location.origin}/auth/welcome`,
           data: {
             full_name: fullName,
             role: "student",
@@ -56,111 +61,166 @@ export default function SignupPage() {
       if (error) throw error
       router.push("/auth/signup-success")
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "An error occurred")
+      setError(
+        error instanceof Error ? error.message : "Signup failed"
+      )
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center p-6 md:p-10 bg-gradient-to-br from-background to-secondary">
-      <div className="w-full max-w-sm">
-        <div className="flex flex-col gap-6">
-          <div className="space-y-2 text-center">
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Gamify IAS Academy
-            </h1>
-            <p className="text-sm text-muted-foreground">Join thousands of aspirants</p>
-          </div>
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[#0F131A] text-[#E9ECF2]">
+      <div className="w-full max-w-md space-y-6">
+        {/* HEADER */}
+        <div className="text-center space-y-2">
+          <p className="text-xs uppercase tracking-widest text-[#8B93A7]">
+            Create Your Account
+          </p>
 
-          <Card className="border-0 shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-2xl">Create Account</CardTitle>
-              <CardDescription>Start your UPSC preparation journey</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-medium">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                  />
-                </div>
+          <h1 className="text-3xl font-semibold text-[#C8A24A]">
+            Gamify IAS
+            <span className="block text-[#E9ECF2] mt-1">
+              Academy
+            </span>
+          </h1>
 
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword" className="text-sm font-medium">
-                    Confirm Password
-                  </Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    placeholder="••••••••"
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                  />
-                </div>
-
-                {error && (
-                  <div className="flex gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-                    <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <p>{error}</p>
-                  </div>
-                )}
-
-                <Button type="submit" className="w-full" disabled={isLoading} size="lg">
-                  {isLoading ? "Creating account..." : "Create Account"}
-                </Button>
-
-                <div className="text-center text-sm">
-                  Already have an account?{" "}
-                  <Link href="/auth/login" className="font-semibold text-primary hover:underline">
-                    Sign in
-                  </Link>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-
-          <p className="text-xs text-center text-muted-foreground">
-            By signing up, you agree to our Terms of Service and Privacy Policy
+          <p className="text-sm text-[#B5BDCF]">
+            Begin your structured UPSC preparation journey.
           </p>
         </div>
+
+        {/* CARD */}
+        <Card className="bg-[#161B26] border border-[#2A3042]">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg text-[#E9ECF2]">
+              Sign Up
+            </CardTitle>
+            <p className="text-sm text-[#8B93A7]">
+              Register as a student to continue.
+            </p>
+          </CardHeader>
+
+          <CardContent>
+            <form onSubmit={handleSignup} className="space-y-4">
+              {/* NAME */}
+              <div className="space-y-1">
+                <Label className="text-sm text-[#B5BDCF]">
+                  Full Name
+                </Label>
+                <Input
+                  type="text"
+                  placeholder="John Doe"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="
+                    bg-[#0F131A]
+                    border border-[#2A3042]
+                    text-[#E9ECF2]
+                    placeholder:text-[#8B93A7]
+                    focus:border-[#C8A24A]
+                  "
+                />
+              </div>
+
+              {/* EMAIL */}
+              <div className="space-y-1">
+                <Label className="text-sm text-[#B5BDCF]">
+                  Email
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="you@example.com"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="
+                    bg-[#0F131A]
+                    border border-[#2A3042]
+                    text-[#E9ECF2]
+                    placeholder:text-[#8B93A7]
+                    focus:border-[#C8A24A]
+                  "
+                />
+              </div>
+
+              {/* PASSWORD */}
+              <div className="space-y-1">
+                <Label className="text-sm text-[#B5BDCF]">
+                  Password
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="
+                    bg-[#0F131A]
+                    border border-[#2A3042]
+                    text-[#E9ECF2]
+                    placeholder:text-[#8B93A7]
+                    focus:border-[#C8A24A]
+                  "
+                />
+              </div>
+
+              {/* CONFIRM PASSWORD */}
+              <div className="space-y-1">
+                <Label className="text-sm text-[#B5BDCF]">
+                  Confirm Password
+                </Label>
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="
+                    bg-[#0F131A]
+                    border border-[#2A3042]
+                    text-[#E9ECF2]
+                    placeholder:text-[#8B93A7]
+                    focus:border-[#C8A24A]
+                  "
+                />
+              </div>
+
+              {/* ERROR */}
+              {error && (
+                <div className="flex gap-2 border border-[#7A2E2E] bg-[#2A1A1A] p-3 text-sm text-[#F2B8B5]">
+                  <AlertCircle className="h-4 w-4 mt-0.5" />
+                  <p>{error}</p>
+                </div>
+              )}
+
+              {/* BUTTON */}
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#C8A24A] text-[#0F131A] hover:bg-[#D8B45C]"
+              >
+                {isLoading ? "Creating account..." : "Create Account"}
+              </Button>
+
+              <p className="text-center text-sm text-[#8B93A7]">
+                Already have an account?{" "}
+                <Link
+                  href="/auth/login"
+                  className="text-[#C8A24A] hover:underline"
+                >
+                  Sign in
+                </Link>
+              </p>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* FOOTER */}
+        <p className="text-xs text-center text-[#7C8599]">
+          By signing up, you agree to our Terms and Privacy Policy.
+        </p>
       </div>
     </div>
   )

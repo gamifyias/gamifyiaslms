@@ -1,9 +1,9 @@
 {
   "pages": {
-    "/page": [
+    "/mentor/home/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
+      "static/chunks/app/mentor/home/page.js"
     ],
     "/layout": [
       "static/chunks/webpack.js",
@@ -16,40 +16,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/login/page.js"
     ],
-    "/auth/welcome/page": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/auth/welcome/page.js"
+      "static/chunks/app/page.js"
     ],
-    "/student/dashboard/page": [
+    "/auth/signup/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/student/dashboard/page.js"
-    ],
-    "/mentor/home/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/home/page.js"
-    ],
-    "/mentor/subjects/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/subjects/page.js"
-    ],
-    "/mentor/assign-mentor/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/assign-mentor/page.js"
-    ],
-    "/mentor/students/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/students/page.js"
-    ],
-    "/mentor/yourstudents/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/mentor/yourstudents/page.js"
+      "static/chunks/app/auth/signup/page.js"
     ]
   }
 }

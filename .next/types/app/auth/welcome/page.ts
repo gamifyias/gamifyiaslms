@@ -1,4 +1,4 @@
-// File: D:\PROJECTS\GAMIFY IAS LMS\V0 LATEST\app\auth\welcome\page.tsx
+// File: D:\PROJECTS\GAMIFY IAS LMS\V0 LATEST - Copy (3)\app\auth\welcome\page.tsx
 import * as entry from '../../../../../app/auth/welcome/page.js'
 import type { ResolvingMetadata, ResolvingViewport } from 'next/dist/lib/metadata/types/metadata-interface.js'
 
