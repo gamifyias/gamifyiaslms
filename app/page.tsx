@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, cubicBezier } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -14,7 +14,7 @@ import { Sword, BookOpen, Trophy, BarChart3, Users } from "lucide-react"
 
 /* ------------------ ANIMATION PRESETS ------------------ */
 
-const ease = [0.22, 1, 0.36, 1]
+const ease = cubicBezier(0.22, 1, 0.36, 1)
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
