@@ -6,18 +6,19 @@ import { usePathname, useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
 import {
-  LayoutDashboard,
+  Home,
+  Radar,
+  ShieldCheck,
+  UserPlus,
+  UserCheck,
   Users,
-  Settings,
-  Gamepad2,
-  LogOut,
-  Trophy,
-  BookOpen,
-  User,
+  Library,
+  BarChart3,
+  UserCog,
   Menu,
-  Users2Icon,
+  LogOut,
+  User,
 } from "lucide-react"
-import { Users2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -33,7 +34,9 @@ export function MentorSidebar() {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) return
 
       const { data } = await supabase
@@ -55,14 +58,15 @@ export function MentorSidebar() {
   }
 
   const menu = [
-    { icon: LayoutDashboard, label: "Home", href: "/mentor/home" },
-    { icon: Gamepad2, label: "Command Center", href: "/mentor/command-center" },
-    { icon: Users2, label: "Manage Roles", href: "/mentor/manage-roles" },
-    { icon: Users, label: "My Students", href: "/mentor/yourstudents" },
-    { icon: Users2, label: "All Students", href: "/mentor/students" },
-    { icon: BookOpen, label: "Subjects & Topics", href: "/mentor/subjects" },
-    { icon: Trophy, label: "Leaderboard", href: "/mentor/leaderboard" },
-    { icon: Settings, label: "Profile", href: "/mentor/profile" },
+    { icon: Home, label: "Home", href: "/mentor/home" },
+    { icon: Radar, label: "Command Center", href: "/mentor/command-center" },
+    { icon: ShieldCheck, label: "Manage Roles", href: "/mentor/manage-roles" },
+    { icon: UserPlus, label: "Assign Mentors", href: "/mentor/assign-mentors" },
+    { icon: UserCheck, label: "My Students", href: "/mentor/yourstudents" },
+    { icon: Users, label: "All Students", href: "/mentor/students" },
+    { icon: Library, label: "Subjects & Topics", href: "/mentor/subjects" },
+    { icon: BarChart3, label: "Leaderboard", href: "/mentor/leaderboard" },
+    { icon: UserCog, label: "Profile", href: "/mentor/profile" },
   ]
 
   const SidebarContent = () => (
@@ -146,22 +150,21 @@ export function MentorSidebar() {
   return (
     <>
       {/* MOBILE TOP BAR */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3  ">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3">
         <Sheet>
           <SheetTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="
-              bg-transparent
-              hover:bg-black/5
-              active:bg-black/10
-              focus-visible:ring-0
-            "
-          >
-            <Menu className="w-6 h-6" />
-          </Button>
-
+            <Button
+              variant="ghost"
+              size="icon"
+              className="
+                bg-transparent
+                hover:bg-black/5
+                active:bg-black/10
+                focus-visible:ring-0
+              "
+            >
+              <Menu className="w-6 h-6" />
+            </Button>
           </SheetTrigger>
 
           <SheetContent side="left" className="p-0 w-64">
