@@ -9,6 +9,7 @@ import {
   Shield,
   User,
   FileChartColumn,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,30 @@ import {
 } from "@/components/ui/card";
 import { MentorSidebar } from "@/components/mentor-sidebar";
 import { useToast } from "@/components/ui/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+/* ---------------- IMAGE COMPRESSION (>2MB) ---------------- */
+async function compressIfNeeded(file: File): Promise<File> {
+  if (file.size <= 2 * 1024 * 1024) return file;
+
+  const img = await createImageBitmap(file);
+  const canvas = document.createElement("canvas");
+
+  const MAX = 512;
+  const scale = Math.min(MAX / img.width, MAX / img.height);
+
+  canvas.width = img.width * scale;
+  canvas.height = img.height * scale;
+
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const blob = await new Promise<Blob>((resolve) =>
+    canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.7)
+  );
+
+  return new File([blob], "avatar.jpg", { type: "image/jpeg" });
+}
 
 export default function MentorProfilePage() {
   const supabase = createClient();
@@ -28,12 +53,13 @@ export default function MentorProfilePage() {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [mentorId, setMentorId] = useState<string | null>(null);
 
   const [mentorProfile, setMentorProfile] = useState<any>({});
   const [dirty, setDirty] = useState<any>({});
 
-  // ---------------- LOAD DATA ----------------
+  /* ---------------- LOAD DATA ---------------- */
   useEffect(() => {
     const load = async () => {
       try {
@@ -68,14 +94,73 @@ export default function MentorProfilePage() {
     };
 
     load();
-  }, []);
+  }, [supabase, toast]);
 
-  // ---------------- HANDLE CHANGE ----------------
+  /* ---------------- HANDLE CHANGE ---------------- */
   const handleChange = (field: string, value: any) => {
     setDirty((prev: any) => ({ ...prev, [field]: value }));
   };
 
-  // ---------------- SAVE ----------------
+  /* ---------------- AVATAR UPLOAD ---------------- */
+  const handleAvatarUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!mentorId) return;
+
+    try {
+      setUploading(true);
+
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const compressed = await compressIfNeeded(file);
+      const path = `${mentorId}/avatar.png`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, compressed, {
+          upsert: true,
+          contentType: compressed.type,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      if (!data?.publicUrl) {
+        throw new Error("Failed to get avatar URL");
+      }
+
+      const publicUrl = data.publicUrl;
+
+      await supabase
+        .from("profiles")
+        .update({
+          avatar_url: publicUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", mentorId);
+
+      setDirty((prev: any) => ({ ...prev, avatar_url: publicUrl }));
+
+      toast({
+        title: "Avatar updated",
+        description: "Your profile picture has been updated.",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Avatar upload failed",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  /* ---------------- SAVE ---------------- */
   const save = async () => {
     if (!mentorId) return;
     setSaving(true);
@@ -131,7 +216,7 @@ export default function MentorProfilePage() {
     }
   };
 
-  // ---------------- LOADING ----------------
+  /* ---------------- LOADING ---------------- */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#F6E7C1]">
@@ -140,32 +225,13 @@ export default function MentorProfilePage() {
     );
   }
 
-  // ---------------- RENDER ----------------
+  /* ---------------- RENDER ---------------- */
   return (
     <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23] relative overflow-hidden">
       <MentorSidebar />
 
-      {/* PARCHMENT NOISE */}
-      <div className="pointer-events-none fixed inset-0 bg-parchment-noise opacity-[0.05] z-0" />
-
-      {/* FLOATING DUST */}
-      <div className="pointer-events-none fixed inset-0 z-0">
-        {[...Array(16)].map((_, i) => (
-          <span
-            key={i}
-            className="absolute w-1 h-1 rounded-full bg-[#3B2A23]/40 animate-dust"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDuration: `${18 + Math.random() * 10}s`,
-              animationDelay: `${Math.random() * 10}s`,
-            }}
-          />
-        ))}
-      </div>
-
       {/* CONTENT */}
-      <div className="flex-1 overflow-y-auto p-8 space-y-10 relative z-10 animate-in fade-in duration-300">
+      <div className="flex-1 overflow-y-auto p-8 space-y-10 relative z-10">
 
         {/* HEADER */}
         <div>
@@ -179,6 +245,44 @@ export default function MentorProfilePage() {
 
           {/* LEFT */}
           <div className="space-y-6">
+
+            {/* AVATAR */}
+            <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3] card-rpg">
+              <CardContent className="flex flex-col items-center gap-4 p-6">
+                <div className="relative group">
+                  <Avatar className="w-32 h-32 border-4 border-[#3B2A23]">
+                    <AvatarImage src={dirty.avatar_url || undefined} />
+                    <AvatarFallback>
+                      <User className="w-12 h-12" />
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <label
+                    htmlFor="mentor-avatar-upload"
+                    className="absolute inset-0 bg-black/50 flex items-center justify-center
+                               opacity-0 group-hover:opacity-100 cursor-pointer rounded-full"
+                  >
+                    {uploading ? (
+                      <Loader2 className="w-6 h-6 animate-spin text-white" />
+                    ) : (
+                      <Camera className="w-6 h-6 text-white" />
+                    )}
+                  </label>
+
+                  <input
+                    id="mentor-avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    hidden
+                    disabled={uploading}
+                    onChange={handleAvatarUpload}
+                  />
+                </div>
+
+                <p className="text-sm opacity-70">Click avatar to change</p>
+              </CardContent>
+            </Card>
+
             <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3] card-rpg">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

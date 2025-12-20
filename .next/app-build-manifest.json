@@ -85,6 +85,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/student/leaderboard/page.js"
+    ],
+    "/mentor/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/mentor/profile/page.js"
     ]
   }
 }
