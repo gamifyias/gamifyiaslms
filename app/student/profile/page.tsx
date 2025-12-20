@@ -1,7 +1,5 @@
-"use client";
-export const dynamic = "force-dynamic";
-
-
+"use client"
+export const dynamic = "force-dynamic"
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -10,227 +8,208 @@ import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { StudentSidebar } from "@/components/student-sidebar"
 
-// Import sub-components
 import { ProfileHeader } from "@/components/student-profile/profile-header"
-import { StatsCard } from "@/components/student-profile/stats-card"
 import { ProfileForm } from "@/components/student-profile/profile-form"
 import { MentorCard } from "@/components/student-profile/mentor-card"
 import { SecuritySettings } from "@/components/student-profile/security-settings"
 
+/* ---------------- IMAGE COMPRESSION ---------------- */
+async function compressImage(file: File): Promise<File> {
+  if (file.size <= 2 * 1024 * 1024) return file // <= 2MB
+
+  const bitmap = await createImageBitmap(file)
+  const canvas = document.createElement("canvas")
+
+  const MAX = 512
+  const scale = Math.min(MAX / bitmap.width, MAX / bitmap.height)
+
+  canvas.width = bitmap.width * scale
+  canvas.height = bitmap.height * scale
+
+  const ctx = canvas.getContext("2d")!
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
+
+  const blob = await new Promise<Blob>((resolve) =>
+    canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.7)
+  )
+
+  return new File([blob], "avatar.jpg", { type: "image/jpeg" })
+}
 
 export default function StudentProfilePage() {
   const supabase = createClient()
   const { toast } = useToast()
 
   const [loading, setLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [studentId, setStudentId] = useState<string | null>(null)
-  
-  // State for original, clean data
-  const [profile, setProfile] = useState<any>(null)
-  const [studentProfile, setStudentProfile] = useState<any>(null)
 
-  // This will be the single source of truth for unsaved changes
   const [dirtyProfile, setDirtyProfile] = useState<any>({})
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
+  /* ---------------- LOAD PROFILE ---------------- */
   useEffect(() => {
-    const fetchInitialData = async () => {
-      setLoading(true)
+    const load = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-          throw new Error("User not found.")
-        }
+        if (!user) throw new Error("Not logged in")
+
         setStudentId(user.id)
 
-        const [profileRes, studentProfileRes] = await Promise.all([
-          supabase.from('profiles').select('*').eq('id', user.id).single(),
-          supabase.from('student_profiles').select('*').eq('id', user.id).single()
-        ])
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single()
 
-        if (profileRes.error && profileRes.error.code !== 'PGRST116') throw profileRes.error
-        if (studentProfileRes.error && studentProfileRes.error.code !== 'PGRST116') throw studentProfileRes.error
+        const { data: studentProfile } = await supabase
+          .from("student_profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single()
 
-        const fetchedProfile = profileRes.data || {}
-        const fetchedStudentProfile = studentProfileRes.data || {}
-
-        setProfile(fetchedProfile)
-        setStudentProfile(fetchedStudentProfile)
-        
         setDirtyProfile({
-          ...fetchedProfile,
-          preferred_subjects: fetchedStudentProfile.preferred_subjects || []
-        });
+          ...profile,
+          preferred_subjects: studentProfile?.preferred_subjects || [],
+        })
 
-      } catch (error: any) {
+        if (profile?.avatar_url) {
+          const { data } = await supabase.storage
+            .from("avatars")
+            .createSignedUrl(profile.avatar_url, 60 * 60)
+
+          setAvatarUrl(data?.signedUrl || null)
+        }
+      } catch (e: any) {
         toast({
           title: "Failed to load profile",
-          description: error.message,
+          description: e.message,
           variant: "destructive",
         })
       } finally {
         setLoading(false)
       }
     }
-    fetchInitialData()
-  }, [supabase, toast])
 
-  const handleProfileChange = (newData: any) => {
-    setDirtyProfile((prev: any) => ({ ...prev, ...newData }))
+    load()
+  }, [])
+
+  /* ---------------- AVATAR UPLOAD ---------------- */
+  const handleAvatarUpload = async (file: File) => {
+    if (!studentId) return
+
+    try {
+      const compressed = await compressImage(file)
+      const path = `${studentId}/avatar.png`
+
+      const { error } = await supabase.storage
+        .from("avatars")
+        .upload(path, compressed, {
+          upsert: true,
+          contentType: compressed.type,
+        })
+
+      if (error) throw error
+
+      const { data } = await supabase.storage
+        .from("avatars")
+        .createSignedUrl(path, 60 * 60)
+
+      setAvatarUrl(data?.signedUrl || null)
+      setDirtyProfile((p: any) => ({ ...p, avatar_url: path }))
+
+      toast({ title: "Avatar uploaded" })
+    } catch (e: any) {
+      toast({
+        title: "Upload failed",
+        description: e.message,
+        variant: "destructive",
+      })
+    }
   }
 
-  const handleSaveChanges = async () => {
-    if (!studentId) return;
-    setIsSaving(true)
+  /* ---------------- SAVE ---------------- */
+  const handleSave = async () => {
+    if (!studentId) return
+    setSaving(true)
+
     try {
-        const { full_name, bio, phone, avatar_url, preferred_subjects } = dirtyProfile;
+      const { full_name, bio, phone, avatar_url, preferred_subjects } = dirtyProfile
 
-        const { error: profileError } = await supabase
-            .from('profiles')
-            .update({
-                full_name,
-                bio,
-                phone,
-                avatar_url,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('id', studentId);
+      await supabase
+        .from("profiles")
+        .update({
+          full_name,
+          bio,
+          phone,
+          avatar_url,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", studentId)
 
-        if (profileError) throw profileError;
+      await supabase
+        .from("student_profiles")
+        .update({ preferred_subjects })
+        .eq("id", studentId)
 
-        const { error: studentProfileError } = await supabase
-            .from('student_profiles')
-            .update({ preferred_subjects })
-            .eq('id', studentId);
-
-        if (studentProfileError) throw studentProfileError;
-
-        toast({
-            title: "Profile Saved!",
-            description: "Your information has been successfully updated.",
-            className: "bg-green-100 text-green-800"
-        });
-
-        setProfile(dirtyProfile);
-        setStudentProfile((prev: any) => ({...prev, preferred_subjects}));
-
-    } catch (error: any) {
-        toast({
-            title: "Error Saving Profile",
-            description: error.message,
-            variant: "destructive",
-        });
+      toast({ title: "Profile saved" })
+    } catch (e: any) {
+      toast({
+        title: "Save failed",
+        description: e.message,
+        variant: "destructive",
+      })
     } finally {
-        setIsSaving(false)
+      setSaving(false)
     }
-  };
-
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <Loader2 className="animate-spin w-10 h-10" />
       </div>
     )
   }
-
-  if (!profile || !studentProfile || !studentId) {
-     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-destructive">Could not load student data. Please try logging in again.</p>
-      </div>
-    )
-  }
-
-    if (loading) {
-      return (
-        <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
-          <StudentSidebar />
-          <div className="flex-1 flex items-center justify-center">
-            <Loader2 className="w-8 h-8 animate-spin" />
-          </div>
-        </div>
-      )
-    }
-  
-    if (!studentId) {
-      return (
-        <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
-          <StudentSidebar />
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center text-destructive">Failed to load student</div>
-          </div>
-        </div>
-      )
-    }
-  
 
   return (
-  <div className="flex h-screen bg-[#F6E7C1] text-[#3B2A23]">
-    <StudentSidebar />
+    <div className="flex h-screen bg-[#F6E7C1]">
+      <StudentSidebar />
 
-    {/* Content Area */}
-    <div className="flex-1 overflow-y-auto bg-[#F6E7C1]">
-      <div className="max-w-6xl mx-auto py-10 px-6">
+      <div className="flex-1 overflow-y-auto px-6 py-10">
+        <div className="max-w-6xl mx-auto space-y-8">
 
-        {/* Page Header */}
-        <header className="mb-10">
-          <h1 className="text-3xl font-bold tracking-tight">Your Profile</h1>
-          <p className="text-muted-foreground">
-            Manage your personal and academic information.
-          </p>
-        </header>
+          <ProfileHeader
+            profile={dirtyProfile}
+            avatarUrl={avatarUrl}
+            onAvatarUpload={handleAvatarUpload}
+          />
 
-        {/* Main Grid */}
-        <main className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <aside className="space-y-6">
+              <MentorCard studentId={studentId!} />
+              <SecuritySettings />
+            </aside>
 
-          {/* LEFT COLUMN: Mentor + Security */}
-          <aside className="space-y-8 md:col-span-1">
-            <MentorCard studentId={studentId} />
+            <section className="md:col-span-2">
+              <ProfileForm
+                profile={dirtyProfile}
+                studentProfile={dirtyProfile}
+                onProfileChange={(d) =>
+                  setDirtyProfile((p: any) => ({ ...p, ...d }))
+                }
+              />
+            </section>
+          </div>
+        </div>
 
-            {/* Security Settings moved here */}
-            <SecuritySettings />
-          </aside>
-
-          {/* RIGHT COLUMN: Main profile info */}
-          <section className="space-y-8 md:col-span-2">
-            <ProfileHeader
-              profile={dirtyProfile}
-              onProfileChange={handleProfileChange}
-            />
-
-            <ProfileForm
-              profile={dirtyProfile}
-              studentProfile={dirtyProfile}
-              onProfileChange={handleProfileChange}
-            />
-          </section>
-
-        </main>
-
-
-
-      </div>
-
-      {/* Floating Save Button */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          size="lg"
-          className="gap-2 shadow-xl"
-          onClick={handleSaveChanges}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <Save className="w-5 h-5" />
-          )}
-          Save All Changes
-        </Button>
+        <div className="fixed bottom-6 right-6">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? <Loader2 className="animate-spin" /> : <Save />}
+            Save All Changes
+          </Button>
+        </div>
       </div>
     </div>
-  </div>
-)
-
+  )
 }
-

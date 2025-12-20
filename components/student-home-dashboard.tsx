@@ -2,18 +2,37 @@
 
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Flame, TrendingUp, BookOpen, Loader2 } from "lucide-react"
+import {
+  Flame,
+  TrendingUp,
+  BookOpen,
+  Loader2,
+  Bell,
+  X,
+} from "lucide-react"
 import Link from "next/link"
+
+type Priority = "high" | "medium" | "low"
+
+interface Notification {
+  id: string
+  priority: Priority
+  message: string
+  link?: string
+}
 
 interface StudentStats {
   currentLevel: number
   totalXP: number
-  currentStreak: number
-  averageAccuracy: number
   boardRank: number
 }
 
@@ -24,154 +43,177 @@ interface TodayQuest {
   xpPotential: number
 }
 
-interface LeaderboardEntry {
-  rank: number
+interface LeaderboardRow {
+  student_id: string
   name: string
-  xp: number
-  avatar: string
+  total_xp: number
+  level: number
+  rank: number
 }
 
 export function StudentHomeDashboard({ studentId }: { studentId: string }) {
+  const supabase = createClient()
+
   const [stats, setStats] = useState<StudentStats | null>(null)
   const [todayQuests, setTodayQuests] = useState<TodayQuest[]>([])
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [leaderboard, setLeaderboard] = useState<LeaderboardRow[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  
+
+  const dismiss = (id: string) =>
+    setNotifications((n) => n.filter((x) => x.id !== id))
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      const supabase = createClient()
+    const load = async () => {
+      const notifs: Notification[] = []
 
-      try {
-        // =============================
-        // 1. Fetch Student Stats from level_system
-        // =============================
-        const { data: levelData, error: levelError } = await supabase
-          .from("level_system")
-          .select("total_xp, current_level")
-          .eq("student_id", studentId)
-          .single()
+      /* ================= PROFILE ================= */
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("bio, phone")
+        .eq("id", studentId)
+        .single()
 
-        if (levelError && levelError.code !== "PGRST116") {
-          console.error("Level data error:", levelError)
-        }
-
-        let boardRank = 999
-        let totalXP = 0
-        let currentLevel = 1
-
-        if (levelData) {
-          totalXP = levelData.total_xp || 0
-          currentLevel = levelData.current_level || 1
-        }
-
-        // Get rank from leaderboard (non-blocking)
-        try {
-          const { data: rankRow, error: rankError } = await supabase
-            .from("leaderboard")
-            .select("rank")
-            .eq("student_id", studentId)
-            .single()
-
-          if (rankError) {
-            console.warn("Rank query error:", {
-              code: rankError.code,
-              message: rankError.message,
-            })
-          }
-
-          if (rankRow?.rank) {
-            boardRank = rankRow.rank
-          }
-        } catch (rankErr) {
-          console.warn("Exception getting rank:", rankErr)
-          // Continue with default rank
-        }
-
-        setStats({
-          currentLevel,
-          totalXP,
-          currentStreak: 0,
-          averageAccuracy: 0,
-          boardRank,
+      if (!profile?.bio || !profile?.phone) {
+        notifs.push({
+          id: "profile",
+          priority: "high",
+          message: "Complete your profile to unlock full analytics.",
+          link: "/student/profile",
         })
-
-        // =============================
-        // 2. Today's Quests - Fetch recent topics
-        // =============================
-        try {
-          const { data: topicProgressData, error: progressError } = await supabase
-            .from("topic_progress")
-            .select(`
-              topic_id,
-              progress_percentage,
-              total_xp,
-              topics(id, name)
-            `)
-            .eq("student_id", studentId)
-            .order("progress_percentage", { ascending: false })
-            .limit(3)
-
-          if (progressError) {
-            console.warn("Progress error:", progressError)
-          }
-
-          if (topicProgressData) {
-            setTodayQuests(
-              topicProgressData.map((tp: any) => ({
-                topicId: tp.topic_id,
-                topicName: tp.topics?.name || "Unknown Topic",
-                progress: tp.progress_percentage || 0,
-                xpPotential: tp.total_xp || 0,
-              }))
-            )
-          }
-        } catch (questErr) {
-          console.warn("Exception fetching quests:", questErr)
-        }
-
-        // =============================
-        // 3. LEADERBOARD - TOP 3 (Non-blocking)
-        // =============================
-        try {
-          const { data: leaderboardData, error: leaderboardError } = await supabase
-            .from("leaderboard")
-            .select("rank, student_name, total_xp")
-            .order("rank", { ascending: true })
-            .limit(3)
-
-          if (leaderboardError) {
-            console.warn("Leaderboard query error:", {
-              code: leaderboardError.code,
-              message: leaderboardError.message,
-            })
-          }
-
-          if (leaderboardData && leaderboardData.length > 0) {
-            setLeaderboard(
-              leaderboardData.map((entry: any) => ({
-                rank: entry.rank,
-                name: entry.student_name || "Unknown",
-                xp: entry.total_xp ?? 0,
-                avatar: "👤",
-              }))
-            )
-          }
-        } catch (lbErr) {
-          console.warn("Exception fetching leaderboard:", lbErr)
-          // Continue without leaderboard data
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error)
-        setError("Failed to load dashboard data")
-      } finally {
-        setLoading(false)
       }
+
+      /* ================= LEVEL SYSTEM ================= */
+      const { data: myLevel } = await supabase
+        .from("level_system")
+        .select("total_xp, current_level")
+        .eq("student_id", studentId)
+        .single()
+
+      const myXP = myLevel?.total_xp ?? 0
+      const myLevelNo = myLevel?.current_level ?? 1
+
+      /* ================= ALL STUDENTS ================= */
+      const { data: students } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .eq("role", "student")
+
+      const { data: levels } = await supabase
+        .from("level_system")
+        .select("student_id, total_xp, current_level")
+
+      const merged: LeaderboardRow[] =
+        students?.map((s) => {
+          const lv = levels?.find((l) => l.student_id === s.id)
+          return {
+            student_id: s.id,
+            name: s.full_name,
+            total_xp: lv?.total_xp ?? 0,
+            level: lv?.current_level ?? 1,
+            rank: 0,
+          }
+        }) ?? []
+
+      merged
+        .sort(
+          (a, b) =>
+            b.total_xp - a.total_xp ||
+            b.level - a.level
+        )
+        .forEach((s, i) => (s.rank = i + 1))
+
+      setLeaderboard(merged)
+
+      const myRank =
+        merged.find((s) => s.student_id === studentId)?.rank ?? 999
+
+      if (myRank <= 10) {
+        notifs.push({
+          id: "top10",
+          priority: "low",
+          message: "🏆 You are in Top 10!",
+          link: "/student/leaderboard",
+        })
+      }
+
+      /* ================= ACTIVITY ================= */
+      const { data: sessions } = await supabase
+        .from("study_sessions")
+        .select("start_time")
+        .eq("student_id", studentId)
+        .order("start_time", { ascending: false })
+        .limit(1)
+
+      if (!sessions || sessions.length === 0) {
+        notifs.push({
+          id: "nostudy",
+          priority: "medium",
+          message: "You haven’t started studying yet.",
+          link: "/student/subjects",
+        })
+      } else {
+        const days =
+          (Date.now() - new Date(sessions[0].start_time).getTime()) /
+          (1000 * 60 * 60 * 24)
+
+        if (days > 7)
+          notifs.push({
+            id: "inactive7",
+            priority: "high",
+            message: "Inactive for 7+ days. Streak lost!",
+            link: "/student/training-dojo",
+          })
+        else if (days > 3)
+          notifs.push({
+            id: "inactive3",
+            priority: "medium",
+            message: "Inactive for 3+ days.",
+            link: "/student/training-dojo",
+          })
+      }
+
+      /* ================= TODAY QUESTS ================= */
+      const { data: quests } = await supabase
+        .from("topic_progress")
+        .select("topic_id, progress_percentage, total_xp, topics(name)")
+        .eq("student_id", studentId)
+        .order("progress_percentage", { ascending: false })
+        .limit(3)
+
+      setTodayQuests(
+        quests?.map((q: any) => ({
+          topicId: q.topic_id,
+          topicName: q.topics?.name ?? "Unknown",
+          progress: q.progress_percentage ?? 0,
+          xpPotential: q.total_xp ?? 0,
+        })) ?? []
+      )
+
+      /* ================= WEEKLY SUMMARY ================= */
+      const weekKey = `student_week_${studentId}`
+      const week = Math.floor(Date.now() / (7 * 86400000))
+      if (localStorage.getItem(weekKey) !== String(week)) {
+        localStorage.setItem(weekKey, String(week))
+        notifs.push({
+          id: "weekly",
+          priority: "low",
+          message: "📊 Weekly summary available.",
+        })
+      }
+
+      setStats({
+        currentLevel: myLevelNo,
+        totalXP: myXP,
+        boardRank: myRank,
+      })
+
+      setNotifications(notifs)
+      setLoading(false)
     }
 
-    fetchDashboardData()
-  }, [studentId])
+    load()
+  }, [studentId, supabase])
 
   if (loading) {
     return (
@@ -181,158 +223,146 @@ export function StudentHomeDashboard({ studentId }: { studentId: string }) {
     )
   }
 
-  if (error) {
-    return <div className="p-8 text-center text-destructive">{error}</div>
-  }
+  if (!stats) return null
 
-  if (!stats) {
-    return <div className="p-8 text-center text-muted-foreground">No profile data found</div>
-  }
+  const xpToNext = (stats.currentLevel + 1) * 1000 - stats.totalXP
+  const progress = Math.min((stats.totalXP % 1000) / 10, 100)
 
-  const xpToNextLevel = (stats.currentLevel + 1) * 1000 - stats.totalXP
-  const progressToNextLevel = Math.min((stats.totalXP % 1000) / 10, 100)
+  const style = {
+    high: "bg-red-100 border-red-600",
+    medium: "bg-yellow-100 border-yellow-600",
+    low: "bg-blue-100 border-blue-600",
+  }
 
   return (
     <div className="p-8 space-y-6 bg-[#F6E7C1] text-[#3B2A23] min-h-screen">
-      {/* Header Section */}
-      <div className="border-b border-[#8B5A2B] bg-[#F2DEB3]">
-        <div className="max-w-7xl mx-auto px-6 py-8">
-          <div className="flex items-center justify-between">
-            <div className="space-y-2">
-              <h1 className="text-3xl font-bold">Student Dashboard</h1>
-              <p className="text-sm">Welcome back! {todayQuests.length} topics available today.</p>
-            </div>
-            <div className="text-right space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-5xl font-bold text-primary">#{stats.boardRank}</span>
-                <span className="text-xl font-semibold text-muted-foreground">on Leaderboard</span>
-              </div>
-              <div className="text-sm text-muted-foreground">Current Rank</div>
-            </div>
-          </div>
 
-          {/* XP Bar */}
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between items-center">
-              <span className="text-sm font-medium">Level {stats.currentLevel}</span>
-              <span className="text-sm text-muted-foreground">{Math.max(0, xpToNextLevel)} XP to next level</span>
-            </div>
-            <Progress value={progressToNextLevel} className="h-3 bg-muted" />
+
+
+      {/* HEADER */}
+      <div className="border-b border-[#8B5A2B] bg-[#F2DEB3] p-6">
+        <div className="flex justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Student Dashboard</h1>
+            <p className="text-sm">Welcome back</p>
           </div>
-      
+          <div className="text-right">
+            <div className="text-5xl font-bold">#{stats.boardRank}</div>
+            <div className="text-sm">Leaderboard Rank</div>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          <div className="flex justify-between text-sm mb-1">
+            <span>Level {stats.currentLevel}</span>
+            <span>{Math.max(0, xpToNext)} XP to next level</span>
+          </div>
+          <Progress value={progress} />
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Card 1: Today's Quests */}
-          <Card className="border-2 border-primary/20 hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-primary" />
-                  Today's Topics
-                </CardTitle>
-                <Badge className="bg-primary/20 text-primary hover:bg-primary/30">{todayQuests.length}</Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {todayQuests.length === 0 ? (
-                <p className="text-muted-foreground text-sm">No topics available</p>
-              ) : (
-                todayQuests.map((quest) => (
-                  <Link key={quest.topicId} href={`/student/subjects/${quest.topicId}`}>
-                    <div className="p-3 bg-muted/40 rounded-lg border border-border hover:bg-muted/60 transition-colors cursor-pointer">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium text-sm">{quest.topicName}</span>
-                        <Badge variant="outline" className="text-xs">
-                          +{quest.xpPotential} XP
-                        </Badge>
-                      </div>
-                      <Progress value={quest.progress} className="h-2" />
-                      <div className="text-xs text-muted-foreground mt-1">{quest.progress}% Complete</div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Card 2: Your Stats */}
-          <Card className="border-2 border-accent/20 hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl">Your Stats</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 bg-muted/40 rounded-lg">
-                  <div className="text-2xl font-bold text-primary">{stats.currentLevel}</div>
-                  <div className="text-xs text-muted-foreground">Level</div>
-                </div>
-                <div className="text-center p-3 bg-muted/40 rounded-lg">
-                  <div className="text-2xl font-bold text-accent">{stats.totalXP.toLocaleString()}</div>
-                  <div className="text-xs text-muted-foreground">Total XP</div>
-                </div>
-                <div className="text-center p-3 bg-muted/40 rounded-lg">
-                  <div className="flex items-center justify-center gap-1 text-xl font-bold text-warning">
-                    <Flame className="w-4 h-4" />
-                    {stats.currentStreak}
+      {/* CONTENT */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* TODAY QUESTS */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+          <CardHeader>
+            <CardTitle className="flex gap-2 items-center">
+              <BookOpen className="w-5 h-5" /> Today’s Topics
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {todayQuests.length === 0 && <p>No topics today</p>}
+            {todayQuests.map((q) => (
+              <Link key={q.topicId} href={`/student/subjects/${q.topicId}`}>
+                <div className="p-3 bg-[#EAD39C] border cursor-pointer">
+                  <div className="flex justify-between mb-1">
+                    <span>{q.topicName}</span>
+                    <Badge>+{q.xpPotential} XP</Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">Streak</div>
+                  <Progress value={q.progress} />
                 </div>
+              </Link>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* STATS */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+          <CardHeader>
+            <CardTitle>Your Stats</CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-3 gap-3">
+            <div className="text-center">
+              <div className="text-2xl font-bold">{stats.currentLevel}</div>
+              <div className="text-xs">Level</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold">{stats.totalXP}</div>
+              <div className="text-xs">XP</div>
+            </div>
+            <div className="text-center">
+              <div className="flex justify-center items-center gap-1 text-xl">
+                <Flame className="w-4 h-4" /> 0
               </div>
-            </CardContent>
-          </Card>
+              <div className="text-xs">Streak</div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Card 3: Leaderboard Snapshot */}
-          <Card className="border-2 border-accent/20 hover:shadow-lg transition-shadow">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-accent" />
-                Leaderboard
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {leaderboard.length === 0 ? (
-                <p className="text-muted-foreground text-sm">Loading leaderboard...</p>
-              ) : (
-                leaderboard.map((entry) => (
-                  <div
-                    key={entry.rank}
-                    className="flex items-center justify-between p-2 hover:bg-muted/40 rounded transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-lg font-bold text-primary">#{entry.rank}</span>
-                      <span className="text-xl">{entry.avatar}</span>
-                      <span className="font-medium text-sm">{entry.name}</span>
-                    </div>
-                    <span className="font-bold text-accent">{entry.xp.toLocaleString()}</span>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Footer Buttons */}
-        <div className="flex gap-4 flex-col sm:flex-row">
-          <Link href="/student/subjects" className="flex-1">
-            <Button className="w-full" size="lg">
-              📚 Browse Subjects
-            </Button>
-          </Link>
-          <Link href="/student/training-dojo" className="flex-1">
-            <Button className="w-full" size="lg" variant="outline">
-              ⚔️ Training Dojo
-            </Button>
-          </Link>
-          <Link href="/student/leaderboard" className="flex-1">
-            <Button className="w-full" size="lg" variant="outline">
-              🏆 Leaderboard
-            </Button>
-          </Link>
-        </div>
+        {/* LEADERBOARD */}
+        <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3] md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex gap-2 items-center">
+              <TrendingUp className="w-5 h-5" /> Leaderboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {leaderboard.slice(0, 5).map((e) => (
+              <div key={e.rank} className="flex justify-between border p-2">
+                <span>#{e.rank} {e.name}</span>
+                <span>Level {e.level}</span>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+                {/* 🔔 NOTIFICATIONS */}
+      <Card className="border-2 border-[#8B5A2B] bg-[#F2DEB3]">
+        <CardHeader className="flex flex-row gap-2 items-center">
+          <Bell className="w-5 h-5" />
+          <CardTitle>Notifications</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {notifications.length === 0 && (
+            <p className="text-sm">No alerts. You’re doing great 🚀</p>
+          )}
+          {notifications.map((n) => (
+            <div
+              key={n.id}
+              className={`p-3 border rounded-md flex justify-between ${style[n.priority]}`}
+            >
+              <span
+                className="cursor-pointer"
+                onClick={() => n.link && (window.location.href = n.link)}
+              >
+                {n.message}
+              </span>
+              <X className="w-4 h-4 cursor-pointer" onClick={() => dismiss(n.id)} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+      {/* FOOTER */}
+      <div className="flex gap-4 flex-col sm:flex-row">
+        <Link href="/student/subjects" className="flex-1">
+          <Button className="w-full">📚 Browse Subjects</Button>
+        </Link>
+        <Link href="/student/training-dojo" className="flex-1">
+          <Button variant="outline" className="w-full">⚔️ Training Dojo</Button>
+        </Link>
+        <Link href="/student/leaderboard" className="flex-1">
+          <Button variant="outline" className="w-full">🏆 Leaderboard</Button>
+        </Link>
       </div>
     </div>
   )
