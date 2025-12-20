@@ -13,29 +13,6 @@ import { ProfileForm } from "@/components/student-profile/profile-form"
 import { MentorCard } from "@/components/student-profile/mentor-card"
 import { SecuritySettings } from "@/components/student-profile/security-settings"
 
-/* ---------------- IMAGE COMPRESSION ---------------- */
-async function compressImage(file: File): Promise<File> {
-  if (file.size <= 2 * 1024 * 1024) return file // <= 2MB
-
-  const bitmap = await createImageBitmap(file)
-  const canvas = document.createElement("canvas")
-
-  const MAX = 512
-  const scale = Math.min(MAX / bitmap.width, MAX / bitmap.height)
-
-  canvas.width = bitmap.width * scale
-  canvas.height = bitmap.height * scale
-
-  const ctx = canvas.getContext("2d")!
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height)
-
-  const blob = await new Promise<Blob>((resolve) =>
-    canvas.toBlob((b) => resolve(b!), "image/jpeg", 0.7)
-  )
-
-  return new File([blob], "avatar.jpg", { type: "image/jpeg" })
-}
-
 export default function StudentProfilePage() {
   const supabase = createClient()
   const { toast } = useToast()
@@ -44,42 +21,42 @@ export default function StudentProfilePage() {
   const [saving, setSaving] = useState(false)
   const [studentId, setStudentId] = useState<string | null>(null)
 
+  // Single source of truth
   const [dirtyProfile, setDirtyProfile] = useState<any>({})
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   /* ---------------- LOAD PROFILE ---------------- */
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+
         if (!user) throw new Error("Not logged in")
 
         setStudentId(user.id)
 
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single()
 
-        const { data: studentProfile } = await supabase
-          .from("student_profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single()
+        if (profileError) throw profileError
+
+        const { data: studentProfile, error: studentProfileError } =
+          await supabase
+            .from("student_profiles")
+            .select("*")
+            .eq("id", user.id)
+            .single()
+
+        if (studentProfileError) throw studentProfileError
 
         setDirtyProfile({
           ...profile,
           preferred_subjects: studentProfile?.preferred_subjects || [],
         })
-
-        if (profile?.avatar_url) {
-          const { data } = await supabase.storage
-            .from("avatars")
-            .createSignedUrl(profile.avatar_url, 60 * 60)
-
-          setAvatarUrl(data?.signedUrl || null)
-        }
       } catch (e: any) {
         toast({
           title: "Failed to load profile",
@@ -92,51 +69,23 @@ export default function StudentProfilePage() {
     }
 
     load()
-  }, [])
+  }, [supabase, toast])
 
-  /* ---------------- AVATAR UPLOAD ---------------- */
-  const handleAvatarUpload = async (file: File) => {
-    if (!studentId) return
-
-    try {
-      const compressed = await compressImage(file)
-      const path = `${studentId}/avatar.png`
-
-      const { error } = await supabase.storage
-        .from("avatars")
-        .upload(path, compressed, {
-          upsert: true,
-          contentType: compressed.type,
-        })
-
-      if (error) throw error
-
-      const { data } = await supabase.storage
-        .from("avatars")
-        .createSignedUrl(path, 60 * 60)
-
-      setAvatarUrl(data?.signedUrl || null)
-      setDirtyProfile((p: any) => ({ ...p, avatar_url: path }))
-
-      toast({ title: "Avatar uploaded" })
-    } catch (e: any) {
-      toast({
-        title: "Upload failed",
-        description: e.message,
-        variant: "destructive",
-      })
-    }
-  }
-
-  /* ---------------- SAVE ---------------- */
+  /* ---------------- SAVE PROFILE ---------------- */
   const handleSave = async () => {
     if (!studentId) return
     setSaving(true)
 
     try {
-      const { full_name, bio, phone, avatar_url, preferred_subjects } = dirtyProfile
+      const {
+        full_name,
+        bio,
+        phone,
+        avatar_url,
+        preferred_subjects,
+      } = dirtyProfile
 
-      await supabase
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({
           full_name,
@@ -147,12 +96,19 @@ export default function StudentProfilePage() {
         })
         .eq("id", studentId)
 
-      await supabase
+      if (profileError) throw profileError
+
+      const { error: studentProfileError } = await supabase
         .from("student_profiles")
         .update({ preferred_subjects })
         .eq("id", studentId)
 
-      toast({ title: "Profile saved" })
+      if (studentProfileError) throw studentProfileError
+
+      toast({
+        title: "Profile saved",
+        description: "Your changes have been saved successfully.",
+      })
     } catch (e: any) {
       toast({
         title: "Save failed",
@@ -179,10 +135,12 @@ export default function StudentProfilePage() {
       <div className="flex-1 overflow-y-auto px-6 py-10">
         <div className="max-w-6xl mx-auto space-y-8">
 
+          {/* PROFILE HEADER (handles avatar upload itself) */}
           <ProfileHeader
             profile={dirtyProfile}
-            avatarUrl={avatarUrl}
-            onAvatarUpload={handleAvatarUpload}
+            onProfileChange={(data) =>
+              setDirtyProfile((prev: any) => ({ ...prev, ...data }))
+            }
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -195,14 +153,15 @@ export default function StudentProfilePage() {
               <ProfileForm
                 profile={dirtyProfile}
                 studentProfile={dirtyProfile}
-                onProfileChange={(d) =>
-                  setDirtyProfile((p: any) => ({ ...p, ...d }))
+                onProfileChange={(data) =>
+                  setDirtyProfile((prev: any) => ({ ...prev, ...data }))
                 }
               />
             </section>
           </div>
         </div>
 
+        {/* SAVE BUTTON */}
         <div className="fixed bottom-6 right-6">
           <Button onClick={handleSave} disabled={saving}>
             {saving ? <Loader2 className="animate-spin" /> : <Save />}
