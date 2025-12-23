@@ -1,14 +1,5 @@
 {
-  "node": {
-    "fa09d850d45ed0a36514904d6de0d7d60651eb9a": {
-      "workers": {
-        "app/mentor/leaderboard/page": "(action-browser)/./node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22D%3A%5C%5CPROJECTS%5C%5CGAMIFY%20IAS%20LMS%5C%5CV0%20LATEST%5C%5Capp%5C%5Cactions%5C%5CrecalculateLeaderboard.ts%22%2C%5B%22recalculateLeaderboard%22%5D%5D%5D&__client_imported__=true!"
-      },
-      "layer": {
-        "app/mentor/leaderboard/page": "action-browser"
-      }
-    }
-  },
+  "node": {},
   "edge": {},
-  "encryptionKey": "LeuoC3FAaUISQyfZvJJq4AKr6UTU065JmvY2+VnhJMM="
+  "encryptionKey": "4XRcBE6P3KwpLE0XuLLeu64IcUMuVNtK1+lDSQUKVI4="
 }

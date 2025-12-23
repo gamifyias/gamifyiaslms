@@ -406,7 +406,7 @@ export function QuestLog({ studentId }: QuestLogProps) {
                 {/* Quest Actions */}
                 <div className="grid grid-cols-3 gap-2 pt-2">
                   {/* Video */}
-                  <div>
+                  {/* <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-1">Video</p>
                     {p?.video_completed ? (
                       <div className="flex items-center gap-1 text-green-700 text-sm font-semibold">
@@ -415,7 +415,7 @@ export function QuestLog({ studentId }: QuestLogProps) {
                       </div>
                     ) : (
                       <Button
-                        size="sm"
+                        // size="sm"
                         variant="outline"
                         className="w-full"
                         onClick={() => {
@@ -428,7 +428,7 @@ export function QuestLog({ studentId }: QuestLogProps) {
                         Mark Done
                       </Button>
                     )}
-                  </div>
+                  </div> */}
 
                   {/* Test */}
                   <div>
