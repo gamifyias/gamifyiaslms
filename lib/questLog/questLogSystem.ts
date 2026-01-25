@@ -47,12 +47,14 @@ export const addDays = (date: Date, days: number): Date => {
   return d
 }
 
+// FIX: Adjusted thresholds so 100 XP is now Mastered
 export const getStatusFromXP = (totalXP: number): "MASTERED" | "GOOD" | "NEEDS_WORK" => {
-  if (totalXP >= 180) return "MASTERED"
-  if (totalXP >= 120) return "GOOD"
+  if (totalXP >= 100) return "MASTERED"
+  if (totalXP >= 60) return "GOOD"
   return "NEEDS_WORK"
 }
 
+// FIX: Updated logic to ensure 100% if Test + 4 Revisions are done
 export const recalcProgress = (
   videoCompleted: boolean,
   testCompleted: boolean,
@@ -61,21 +63,46 @@ export const recalcProgress = (
   rev3: boolean,
   rev4: boolean
 ): number => {
+  // Primary Logic: If Test is passed and all Revisions are done, it is 100%
+  // This fixes the "75% glitch" if they skipped the video or if math was off.
+  if (testCompleted && rev1 && rev2 && rev3 && rev4) {
+    return 100
+  }
+
+  // Standard calculation for partial progress
   let progress = 0
-  if (videoCompleted) progress += 25
-  if (testCompleted) progress += 35
+  if (videoCompleted) progress += 10
+  if (testCompleted) progress += 50 // Increased weight of test completion
   if (rev1) progress += 10
   if (rev2) progress += 10
   if (rev3) progress += 10
   if (rev4) progress += 10
+  
   return Math.min(progress, 100)
 }
 
+// FIX: Helper to calculate Total XP with the "Completion Bonus" rule
+const calculateSmartTotalXP = (
+  currentVideoXP: number,
+  currentTestXP: number,
+  currentRevisionXP: number,
+  isCompleteSet: boolean // (Test + 4 Revisions)
+): number => {
+  const rawTotal = currentVideoXP + currentTestXP + currentRevisionXP
+  
+  // If the user completed the main loop (Test + 4 Revisions), force 100 XP
+  if (isCompleteSet && rawTotal < 100) {
+    return 100
+  }
+  
+  return rawTotal
+}
+
 export const getXPFromTestScore = (score: number): number => {
-  if (score >= 16) return 50
-  if (score >= 11) return 25
-  if (score >= 7) return 10
-  return 0
+  if (score >= 16) return 40
+  if (score >= 11) return 30
+  if (score >= 7) return 20
+  return 10 // Minimum points for attempting
 }
 
 // =============================
@@ -89,7 +116,6 @@ export const ensureTopicProgress = async (
   const supabase = createClient()
 
   try {
-    // Check if exists
     const { data: existing, error: fetchError } = await supabase
       .from("topic_progress")
       .select("*")
@@ -101,12 +127,10 @@ export const ensureTopicProgress = async (
       console.warn("Error fetching topic progress:", fetchError)
     }
 
-    // If exists, return it
     if (existing) {
       return existing
     }
 
-    // Create new entry
     const now = new Date().toISOString()
     const { data: newRow, error: insertError } = await supabase
       .from("topic_progress")
@@ -152,19 +176,23 @@ export const handleVideoComplete = async (studentId: string, topicId: string): P
   const supabase = createClient()
 
   try {
-    // Ensure progress exists
     let progress = await ensureTopicProgress(studentId, topicId)
     if (!progress) return null
 
-    // If already completed, return as-is (idempotent)
-    if (progress.video_completed) {
-      return progress
-    }
+    if (progress.video_completed) return progress
 
-    // Update progress
-    const newVideoXP = progress.video_xp + 15
-    const newTotalXP = newVideoXP + progress.test_xp + progress.revision_xp
+    const newVideoXP = 10 // Flat value
+    
+    // Check if everything else is already done
+    const isSetComplete = progress.test_completed && 
+      progress.revision_1_completed && 
+      progress.revision_2_completed && 
+      progress.revision_3_completed && 
+      progress.revision_4_completed
+
+    const newTotalXP = calculateSmartTotalXP(newVideoXP, progress.test_xp, progress.revision_xp, isSetComplete)
     const newStatus = getStatusFromXP(newTotalXP)
+    
     const newProgressPercentage = recalcProgress(
       true,
       progress.test_completed,
@@ -188,11 +216,7 @@ export const handleVideoComplete = async (studentId: string, topicId: string): P
       .select()
       .maybeSingle()
 
-    if (updateError) {
-      console.warn("Error updating video complete:", updateError)
-      return progress
-    }
-
+    if (updateError) return progress
     return updated
   } catch (err) {
     console.warn("Exception in handleVideoComplete:", err)
@@ -212,15 +236,24 @@ export const handleTestSubmit = async (
   const supabase = createClient()
 
   try {
-    // Ensure progress exists
     let progress = await ensureTopicProgress(studentId, topicId)
     if (!progress) return null
 
     // Calculate XP from score
-    const xpFromScore = getXPFromTestScore(score)
-    const newTestXP = xpFromScore
-    const newTotalXP = progress.video_xp + newTestXP + progress.revision_xp
+    const newTestXP = getXPFromTestScore(score)
+    
+    // Check if this action completes the set
+    const isSetComplete = 
+      true && // We are completing test now
+      progress.revision_1_completed && 
+      progress.revision_2_completed && 
+      progress.revision_3_completed && 
+      progress.revision_4_completed
+
+    // Calculate total with bonus if complete
+    const newTotalXP = calculateSmartTotalXP(progress.video_xp, newTestXP, progress.revision_xp, isSetComplete)
     const newStatus = getStatusFromXP(newTotalXP)
+    
     const newProgressPercentage = recalcProgress(
       progress.video_completed,
       true,
@@ -245,11 +278,7 @@ export const handleTestSubmit = async (
       .select()
       .maybeSingle()
 
-    if (updateError) {
-      console.warn("Error updating test submit:", updateError)
-      return progress
-    }
-
+    if (updateError) return progress
     return updated
   } catch (err) {
     console.warn("Exception in handleTestSubmit:", err)
@@ -269,21 +298,26 @@ export const handleRevisionComplete = async (
   const supabase = createClient()
 
   try {
-    // Ensure progress exists
     let progress = await ensureTopicProgress(studentId, topicId)
     if (!progress) return null
 
     const revisionKey = `revision_${revisionIndex}_completed` as keyof TopicProgressData
     const revisionDateKey = `revision_${revisionIndex}_date` as keyof TopicProgressData
 
-    // If already completed, return as-is (idempotent)
-    if (progress[revisionKey]) {
-      return progress
-    }
+    if (progress[revisionKey]) return progress
 
-    // Update progress
     const newRevisionXP = progress.revision_xp + 10
-    const newTotalXP = progress.video_xp + progress.test_xp + newRevisionXP
+    
+    // Check if this revision completes the set
+    // We check if Test is done, AND all OTHER revisions are done
+    const isRev1Done = revisionIndex === 1 ? true : progress.revision_1_completed
+    const isRev2Done = revisionIndex === 2 ? true : progress.revision_2_completed
+    const isRev3Done = revisionIndex === 3 ? true : progress.revision_3_completed
+    const isRev4Done = revisionIndex === 4 ? true : progress.revision_4_completed
+    
+    const isSetComplete = progress.test_completed && isRev1Done && isRev2Done && isRev3Done && isRev4Done
+
+    const newTotalXP = calculateSmartTotalXP(progress.video_xp, progress.test_xp, newRevisionXP, isSetComplete)
     const newStatus = getStatusFromXP(newTotalXP)
 
     const updateData: any = {
@@ -295,14 +329,13 @@ export const handleRevisionComplete = async (
       last_updated: new Date().toISOString(),
     }
 
-    // Recalculate progress percentage
     updateData.progress_percentage = recalcProgress(
       progress.video_completed,
       progress.test_completed,
-      revisionIndex === 1 ? true : progress.revision_1_completed,
-      revisionIndex === 2 ? true : progress.revision_2_completed,
-      revisionIndex === 3 ? true : progress.revision_3_completed,
-      revisionIndex === 4 ? true : progress.revision_4_completed
+      isRev1Done,
+      isRev2Done,
+      isRev3Done,
+      isRev4Done
     )
 
     const { data: updated, error: updateError } = await supabase
@@ -312,11 +345,7 @@ export const handleRevisionComplete = async (
       .select()
       .maybeSingle()
 
-    if (updateError) {
-      console.warn("Error updating revision complete:", updateError)
-      return progress
-    }
-
+    if (updateError) return progress
     return updated
   } catch (err) {
     console.warn("Exception in handleRevisionComplete:", err)
@@ -336,7 +365,6 @@ export const openMaterial = async (
   const supabase = createClient()
 
   try {
-    // Check if entry exists
     const { data: existing } = await supabase
       .from("revision_schedule")
       .select("*")
@@ -348,7 +376,6 @@ export const openMaterial = async (
     const now = new Date().toISOString()
 
     if (existing) {
-      // Update last_opened_at
       const { error: updateError } = await supabase
         .from("revision_schedule")
         .update({
@@ -356,11 +383,8 @@ export const openMaterial = async (
         })
         .eq("id", existing.id)
 
-      if (updateError) {
-        console.warn("Error updating last_opened_at:", updateError)
-      }
+      if (updateError) console.warn("Error updating last_opened_at:", updateError)
     } else {
-      // Create new entry
       const dueDate = addDays(new Date(), 1).toISOString()
 
       const { error: insertError } = await supabase.from("revision_schedule").insert({
@@ -407,7 +431,6 @@ export const fetchStudyMaterials = async (topicIds: string[]): Promise<Map<strin
       return new Map()
     }
 
-    // Group by topic_id
     const materialsByTopic = new Map<string, StudyMaterial[]>()
     
     materials?.forEach((material) => {
