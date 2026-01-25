@@ -52,7 +52,6 @@ export const isToday = (date: string): boolean => {
 
 export const isOverdue = (date: string, isCompleted: boolean): boolean => {
   if (isCompleted) return false
-  // Compare against start of today to be lenient, or "now" to be strict
   const revDate = new Date(date)
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
@@ -75,7 +74,6 @@ export const getDojoRevisions = async (studentId: string): Promise<DojoTabs> => 
   const supabase = createClient()
 
   try {
-    // We select *, and JOIN topics to get the name/desc
     const { data, error } = await supabase
       .from("revision_schedule")
       .select(`
@@ -101,17 +99,11 @@ export const getDojoRevisions = async (studentId: string): Promise<DojoTabs> => 
     const upcoming: DojoRevision[] = []
 
     revisions.forEach((rev) => {
-      // Logic: 
-      // Overdue = Date is BEFORE today (00:00)
-      // Today = Date matches today's D/M/Y
-      // Upcoming = Date is AFTER today (23:59)
-      
       if (isToday(rev.due_date)) {
         today.push(rev)
       } else if (isUpcoming(rev.due_date, rev.is_completed)) {
         upcoming.push(rev)
       } else {
-        // If it's not today and not upcoming, it must be past due
         overdue.push(rev)
       }
     })
@@ -124,13 +116,17 @@ export const getDojoRevisions = async (studentId: string): Promise<DojoTabs> => 
 }
 
 // =============================
+// IMPORTANT: Alias for compatibility with useDojo hook
+// =============================
+export const fetchDojoTabs = getDojoRevisions; 
+
+// =============================
 // Helper: Award XP
 // =============================
 
 const awardRevisionXP = async (studentId: string): Promise<void> => {
   const supabase = createClient()
   try {
-    // Simple Increment Logic
     const { data: levelData } = await supabase
       .from("level_system")
       .select("total_xp")
@@ -156,7 +152,6 @@ export const completeRevision = async (revisionId: string): Promise<boolean> => 
   const supabase = createClient()
 
   try {
-    // 1. Fetch the revision first to check dates
     const { data: revision } = await supabase
       .from("revision_schedule")
       .select("*")
@@ -168,16 +163,13 @@ export const completeRevision = async (revisionId: string): Promise<boolean> => 
       return false
     }
 
-    // --- SECURITY CHECK: PREVENT UPCOMING COMPLETION ---
     if (isUpcoming(revision.due_date, false)) {
       console.warn("Attempted to complete an upcoming revision early.")
-      return false // Block the action
+      return false 
     }
-    // ---------------------------------------------------
 
     const now = new Date().toISOString()
 
-    // 2. Mark as completed
     const { error: completeError } = await supabase
       .from("revision_schedule")
       .update({
@@ -192,10 +184,8 @@ export const completeRevision = async (revisionId: string): Promise<boolean> => 
       return false
     }
 
-    // 3. Create next revision if not the last one
     if (revision.revision_number < 4) {
       const nextRevNumber = revision.revision_number + 1
-      // Calculate next due date based on intervals (1, 7, 14, 30)
       const nextDueDate = addDays(new Date(), REVISION_INTERVALS[nextRevNumber - 1]).toISOString()
 
       const { error: nextError } = await supabase.from("revision_schedule").insert({
@@ -214,7 +204,6 @@ export const completeRevision = async (revisionId: string): Promise<boolean> => 
       }
     }
 
-    // 4. Update XP
     await awardRevisionXP(revision.student_id)
     
     return true
@@ -251,7 +240,6 @@ export const openMaterial = async (
     const now = new Date().toISOString()
 
     if (existing) {
-      // Update access time
       await supabase
         .from("revision_schedule")
         .update({ last_opened_at: now })
@@ -259,7 +247,6 @@ export const openMaterial = async (
 
       return existing
     } else {
-      // Create first revision
       const dueDate = addDays(new Date(), REVISION_INTERVALS[0]).toISOString()
       const { data: inserted, error: insertError } = await supabase
         .from("revision_schedule")
@@ -301,7 +288,6 @@ export const startTopicProgress = async (
 
   try {
     for (const materialType of materialTypes) {
-      // Reuse logic from openMaterial logic essentially, but bulk
       const { data: existing } = await supabase
         .from("revision_schedule")
         .select("id")
