@@ -35,20 +35,6 @@ interface QuestLogProps {
   studentId: string
 }
 
-/**
- * Calculate quest status based on total XP
- * 
- * Status determination:
- * - MASTERED: totalXP >= 180 (complete mastery)
- * - GOOD: totalXP >= 120 and < 180 (good progress)
- * - NEEDS_WORK: totalXP < 120 (just started or low progress)
- */
-const getStatusFromXP = (totalXP: number): "MASTERED" | "GOOD" | "NEEDS_WORK" => {
-  if (totalXP >= 180) return "MASTERED"
-  if (totalXP >= 120) return "GOOD"
-  return "NEEDS_WORK"
-}
-
 export function QuestLog({ studentId }: QuestLogProps) {
   const [quests, setQuests] = useState<QuestData[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,7 +54,6 @@ export function QuestLog({ studentId }: QuestLogProps) {
       setLoading(true)
       setError(null)
 
-      // Fetch all topics
       const { data: topics, error: topicsError } = await supabase
         .from("topics")
         .select("id, name, description")
@@ -76,19 +61,15 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
       if (topicsError) throw new Error(topicsError.message)
 
-      // Fetch all topic progress for this student
       const { data: progressData } = await supabase
         .from("topic_progress")
         .select("*")
         .eq("student_id", studentId)
 
       const progressMap = new Map((progressData || []).map((p) => [p.topic_id, p]))
-
-      // Fetch study materials for all topics
       const topicIds = (topics || []).map((t) => t.id)
       const materialsMap = await fetchStudyMaterials(topicIds)
 
-      // Build quest list
       const questData: QuestData[] = (topics || []).map((topic) => ({
         topic,
         progress: progressMap.get(topic.id) || null,
@@ -105,21 +86,52 @@ export function QuestLog({ studentId }: QuestLogProps) {
     }
   }
 
+  // --- Helper to fix the Progress Bar Glitch locally ---
+  const calculateDisplayProgress = (p: TopicProgressData | null) => {
+    if (!p) return 0
+    
+    // Logic: If all revisions are done, force 100% regardless of backend calculation glitch
+    const allRevisionsDone = 
+      p.revision_1_completed && 
+      p.revision_2_completed && 
+      p.revision_3_completed && 
+      p.revision_4_completed
+
+    // You can add "&& p.test_completed" here if passing test is required for 100%
+    if (allRevisionsDone) return 100
+
+    return p.progress_percentage
+  }
+
+  // --- Helper to fix XP Glitch locally ---
+  const calculateDisplayXP = (p: TopicProgressData | null) => {
+    if (!p) return 0
+    
+    const allRevisionsDone = 
+      p.revision_1_completed && 
+      p.revision_2_completed && 
+      p.revision_3_completed && 
+      p.revision_4_completed
+
+    // If backend returns < 100 but we know they finished, show 100 (or add the bonus)
+    if (allRevisionsDone && p.total_xp < 100) return 100
+
+    return p.total_xp
+  }
+
   const handleVideoClick = async (topicId: string, material: StudyMaterial) => {
     try {
-      // Ensure progress exists and mark video complete
+      // Open immediately for better UX
+      window.open(material.resource_url, "_blank")
+
       const updated = await handleVideoComplete(studentId, topicId)
       if (updated) {
-        // Update local state
         setQuests((prev) =>
           prev.map((q) =>
             q.topic.id === topicId ? { ...q, progress: updated } : q
           )
         )
-
-        // Open material in new tab
         await openMaterial(studentId, topicId, "video")
-        window.open(material.resource_url, "_blank")
       }
     } catch (err) {
       console.error("Error handling video:", err)
@@ -128,9 +140,8 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
   const handlePDFClick = async (topicId: string, material: StudyMaterial) => {
     try {
-      // Update revision schedule
-      await openMaterial(studentId, topicId, "pdf")
       window.open(material.resource_url, "_blank")
+      await openMaterial(studentId, topicId, "pdf")
     } catch (err) {
       console.error("Error opening PDF:", err)
     }
@@ -138,9 +149,8 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
   const handleTestClick = async (topicId: string, material: StudyMaterial) => {
     try {
-      // Update revision schedule
-      await openMaterial(studentId, topicId, "test")
       window.open(material.resource_url, "_blank")
+      await openMaterial(studentId, topicId, "test")
     } catch (err) {
       console.error("Error opening test:", err)
     }
@@ -148,15 +158,11 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
   const handleTestScoreChange = (topicId: string, value: string) => {
     const score = Math.min(Math.max(parseInt(value) || 0, 0), 20)
-    setTestScores((prev) => ({
-      ...prev,
-      [topicId]: score,
-    }))
+    setTestScores((prev) => ({ ...prev, [topicId]: score }))
   }
 
   const handleTestSave = async (topicId: string) => {
     const score = testScores[topicId] || 0
-
     try {
       setSubmittingTest((prev) => ({ ...prev, [topicId]: true }))
 
@@ -167,16 +173,8 @@ export function QuestLog({ studentId }: QuestLogProps) {
             q.topic.id === topicId ? { ...q, progress: updated } : q
           )
         )
-
-        // Open test material if available
-        const testMaterial = quests
-          .find((q) => q.topic.id === topicId)
-          ?.materials.find((m) => m.content_type === "test")
-        
-        if (testMaterial) {
-          await openMaterial(studentId, topicId, "test")
-          window.open(testMaterial.resource_url, "_blank")
-        }
+        // FIX: Removed the code that opened the test material window here.
+        // Just submitting the score now.
       }
     } catch (err) {
       console.error("Error saving test score:", err)
@@ -187,68 +185,48 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
   const handleRevisionClick = async (topicId: string, revisionIndex: number) => {
     const key = `${topicId}-${revisionIndex}`
+    
+    // FIX: 1. Find and open material IMMEDIATELY (don't wait for DB)
+    const quest = quests.find((q) => q.topic.id === topicId)
+    let materialToOpen: StudyMaterial | undefined
 
+    if (revisionIndex === 1) {
+      materialToOpen = quest?.materials.find((m) => m.content_type === "video")
+    } else if (revisionIndex === 2) {
+      materialToOpen = quest?.materials.find((m) => m.content_type === "pdf" || m.content_type === "notes")
+    } else if (revisionIndex === 3) {
+      materialToOpen = quest?.materials.find((m) => m.content_type === "test")
+    } else if (revisionIndex === 4) {
+      materialToOpen = quest?.materials.find((m) => m.content_type === "slides" || m.content_type === "reference")
+    }
+
+    if (materialToOpen) {
+      window.open(materialToOpen.resource_url, "_blank")
+    }
+    
+    // FIX: 2. Then do the background update
     try {
       setCompletingRevision((prev) => ({ ...prev, [key]: true }))
-
+      
+      // Update DB in background
       const updated = await handleRevisionComplete(studentId, topicId, revisionIndex)
+      
       if (updated) {
         setQuests((prev) =>
           prev.map((q) =>
             q.topic.id === topicId ? { ...q, progress: updated } : q
           )
         )
-
-        // Open appropriate material based on revision index
-        const quest = quests.find((q) => q.topic.id === topicId)
-        let materialToOpen: StudyMaterial | undefined
-
-        if (revisionIndex === 1) {
-          materialToOpen = quest?.materials.find((m) => m.content_type === "video")
-          if (materialToOpen) {
-            await openMaterial(studentId, topicId, "video")
-          }
-        } else if (revisionIndex === 2) {
-          materialToOpen = quest?.materials.find((m) => m.content_type === "pdf" || m.content_type === "notes")
-          if (materialToOpen) {
-            await openMaterial(studentId, topicId, "pdf")
-          }
-        } else if (revisionIndex === 3) {
-          materialToOpen = quest?.materials.find((m) => m.content_type === "test")
-          if (materialToOpen) {
-            await openMaterial(studentId, topicId, "test")
-          }
-        } else if (revisionIndex === 4) {
-          materialToOpen = quest?.materials.find((m) => m.content_type === "slides" || m.content_type === "reference")
-          if (materialToOpen) {
-            await openMaterial(studentId, topicId, "pdf")
-          }
-        }
-
-        if (materialToOpen) {
-          window.open(materialToOpen.resource_url, "_blank")
-        }
+        // Log the view in background
+        if (revisionIndex === 1) await openMaterial(studentId, topicId, "video")
+        else if (revisionIndex === 2) await openMaterial(studentId, topicId, "pdf")
+        else if (revisionIndex === 3) await openMaterial(studentId, topicId, "test")
+        else if (revisionIndex === 4) await openMaterial(studentId, topicId, "pdf")
       }
     } catch (err) {
       console.error("Error completing revision:", err)
     } finally {
       setCompletingRevision((prev) => ({ ...prev, [key]: false }))
-    }
-  }
-
-  /**
-   * Get status badge color based on status type
-   */
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case "MASTERED":
-        return "bg-green-100 text-green-800"
-      case "GOOD":
-        return "bg-yellow-100 text-yellow-800"
-      case "NEEDS_WORK":
-        return "bg-red-100 text-red-800"
-      default:
-        return "bg-gray-100 text-gray-800"
     }
   }
 
@@ -258,7 +236,7 @@ export function QuestLog({ studentId }: QuestLogProps) {
   }
 
   const completedQuests = quests.filter(
-    (q) => q.progress && q.progress.progress_percentage === 100
+    (q) => calculateDisplayProgress(q.progress) === 100
   ).length
 
   if (loading) {
@@ -296,34 +274,25 @@ export function QuestLog({ studentId }: QuestLogProps) {
         <CardContent className="space-y-4">
           {quests.map((quest) => {
             const p = quest.progress
+            
+            // USE NEW HELPERS FOR DISPLAY
+            const progressPercent = calculateDisplayProgress(p)
+            const currentXP = calculateDisplayXP(p)
 
-            /**
-             * STATUS CALCULATION FOR QUEST LOG:
-             * 
-             * Status is determined by total_xp from topic_progress:
-             * - MASTERED (100%): progress_percentage === 100 (all materials + revisions done)
-             * - MASTERED (XP): total_xp >= 180
-             * - GOOD: total_xp >= 120 and < 180
-             * - NEEDS_WORK: total_xp < 120
-             * 
-             * Display logic:
-             * 1. If progress is 100%, show "✓ MASTERED" (green)
-             * 2. Else calculate status from total_xp
-             */
             let displayStatus = "NEEDS_WORK"
             let statusBadgeText = "Not Started"
 
             if (p) {
-              if (p.progress_percentage === 100) {
+              if (progressPercent === 100) {
                 displayStatus = "MASTERED"
                 statusBadgeText = "✓ MASTERED"
-              } else if (p.total_xp >= 180) {
+              } else if (currentXP >= 180) {
                 displayStatus = "MASTERED"
                 statusBadgeText = "🟢 MASTERED"
-              } else if (p.total_xp >= 120) {
+              } else if (currentXP >= 120) {
                 displayStatus = "GOOD"
                 statusBadgeText = "🟡 GOOD"
-              } else if (p.total_xp > 0) {
+              } else if (currentXP > 0) {
                 displayStatus = "NEEDS_WORK"
                 statusBadgeText = "📈 NEEDS_WORK"
               }
@@ -337,27 +306,24 @@ export function QuestLog({ studentId }: QuestLogProps) {
                     <h3 className="font-semibold text-lg">{quest.topic.name}</h3>
                     <p className="text-sm text-muted-foreground">{quest.topic.description}</p>
                   </div>
-                  {/* <Badge className={getStatusColor(displayStatus)}>
-                    {statusBadgeText}
-                  </Badge> */}
                 </div>
 
                 {/* Progress Bar */}
                 <div className="space-y-1">
                   <div className="flex justify-between items-center">
                     <span className="text-sm font-medium">Progress</span>
-                    <span className="text-sm font-bold">{p?.progress_percentage || 0}%</span>
+                    <span className="text-sm font-bold">{progressPercent}%</span>
                   </div>
-                  <Progress value={p?.progress_percentage || 0} className="h-2" />
+                  <Progress value={progressPercent} className="h-2" />
                 </div>
 
                 {/* XP Display */}
                 <div className="flex items-center gap-2 text-sm">
                   <Zap className="w-4 h-4 text-yellow-500" />
-                  <span className="font-semibold">{p?.total_xp || 0} XP</span>
+                  <span className="font-semibold">{currentXP} XP</span>
                   {p && (
                     <span className="text-xs text-muted-foreground">
-                      {p.total_xp >= 180 ? "(Master Level)" : p.total_xp >= 120 ? "(Good Progress)" : "(Keep Going)"}
+                      {currentXP >= 180 ? "(Master Level)" : currentXP >= 120 ? "(Good Progress)" : "(Keep Going)"}
                     </span>
                   )}
                 </div>
@@ -405,31 +371,6 @@ export function QuestLog({ studentId }: QuestLogProps) {
 
                 {/* Quest Actions */}
                 <div className="grid grid-cols-3 gap-2 pt-2">
-                  {/* Video */}
-                  {/* <div>
-                    <p className="text-xs font-semibold text-muted-foreground mb-1">Video</p>
-                    {p?.video_completed ? (
-                      <div className="flex items-center gap-1 text-green-700 text-sm font-semibold">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Done
-                      </div>
-                    ) : (
-                      <Button
-                        // size="sm"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => {
-                          const videoMaterial = quest.materials.find((m) => m.content_type === "video")
-                          if (videoMaterial) {
-                            handleVideoClick(quest.topic.id, videoMaterial)
-                          }
-                        }}
-                      >
-                        Mark Done
-                      </Button>
-                    )}
-                  </div> */}
-
                   {/* Test */}
                   <div>
                     <p className="text-xs font-semibold text-muted-foreground mb-1">Test Score</p>
