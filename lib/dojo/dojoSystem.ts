@@ -148,7 +148,8 @@ const awardRevisionXP = async (studentId: string): Promise<void> => {
 // 2. Complete Revision (With LOCK Logic)
 // =============================
 
-export const completeRevision = async (revisionId: string): Promise<boolean> => {
+// UPDATED: Now accepts optional 'studentId' as second argument to fix hook error
+export const completeRevision = async (revisionId: string, studentId?: string): Promise<boolean> => {
   const supabase = createClient()
 
   try {
